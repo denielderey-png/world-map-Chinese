@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>寰宇图鉴 · 互动世界地图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<style>
+  :root {
+    --bg:       #08090f;
+    --bg2:      #0d0f1a;
+    --bg3:      #111420;
+    --border:   rgba(255,255,255,0.06);
+    --gold:     #c9a84c;
+    --gold2:    #e8c96e;
+    --text:     #e0d8c8;
+    --text2:    rgba(224,216,200,0.5);
+    --land:     #1e2535;
+    --land-h:   #2a3550;
+    --land-db:  #2e4060;
+    --land-dbh: #3d5580;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Serif SC', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; height: 54px;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+    background: rgba(8,9,15,0.97);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { display: flex; align-items: baseline; gap: 12px; }
+  .logo-main {
+    font-size: 18px; font-weight: 700;
+    letter-spacing: .18em; color: var(--gold);
+  }
+  .logo-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px; font-style: italic;
+    color: rgba(255,255,255,0.22); letter-spacing: .2em;
+  }
+  .header-hint { font-size: 11px; color: rgba(255,255,255,0.28); letter-spacing: .08em; }
+  .header-hint b { color: var(--gold); font-weight: 600; }
+
+  /* ─── STAGE ─── */
+  #stage { position: fixed; top: 54px; left: 0; right: 0; bottom: 0; }
+  #map-svg { width: 100%; height: 100%; display: block; cursor: grab; }
+  #map-svg.dragging { cursor: grabbing; }
+
+  /* ─── MAP ─── */
+  .c-path {
+    fill: var(--land);
+    stroke: rgba(255,255,255,0.05); stroke-width: .4px;
+    stroke-linejoin: round; cursor: pointer; transition: fill .2s;
+  }
+  .c-path:hover            { fill: var(--land-h); }
+  .c-path.has-db           { fill: var(--land-db); }
+  .c-path.has-db:hover     { fill: var(--land-dbh); }
+  .c-path.active           { fill: var(--gold) !important; opacity: .85; }
+
+  .c-label {
+    font-family: 'Noto Serif SC', serif;
+    text-anchor: middle; pointer-events: none;
+    paint-order: stroke;
+    stroke: rgba(8,9,15,.88); stroke-linejoin: round; stroke-width: 2.5px;
+    fill: rgba(255,255,255,.38); font-size: 10px; user-select: none;
+  }
+  .c-label.has-db { fill: var(--gold2); font-size: 11px; font-weight: 700; }
+
+  /* ─── TOOLTIP ─── */
+  #tooltip {
+    position: fixed;
+    padding: 6px 13px;
+    background: rgba(8,9,15,0.96);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--text); font-size: 12px; letter-spacing: .06em;
+    pointer-events: none; z-index: 200;
+    opacity: 0; transition: opacity .15s;
+    white-space: nowrap; transform: translate(-50%, -115%);
+  }
+  #tooltip.show { opacity: 1; }
+  .tip-badge {
+    display: inline-block; margin-left: 8px; padding: 1px 5px;
+    background: var(--gold); color: #000;
+    font-size: 9px; font-weight: 700; letter-spacing: .1em; vertical-align: 1px;
+  }
+
+  /* ─── ZOOM BUTTONS ─── */
+  .zoom-btns {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; flex-direction: column; gap: 3px; z-index: 50;
+  }
+  .z-btn {
+    width: 36px; height: 36px;
+    background: rgba(8,9,15,0.9);
+    border: 1px solid var(--border);
+    color: rgba(255,255,255,0.5); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s; font-family: sans-serif;
+  }
+  .z-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ─── LEGEND ─── */
+  .legend {
+    position: fixed; bottom: 24px; left: 24px;
+    display: flex; flex-direction: column; gap: 7px; z-index: 50;
+  }
+  .legend-row {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 11px; color: rgba(255,255,255,0.32); letter-spacing: .08em;
+  }
+  .legend-dot { width: 13px; height: 13px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ─── PANEL ─── */
+  #panel {
+    position: fixed; top: 54px; right: 0;
+    width: 380px; bottom: 0; z-index: 80;
+    background: var(--bg2);
+    border-left: 1px solid rgba(201,168,76,0.18);
+    transform: translateX(100%);
+    transition: transform .42s cubic-bezier(.16,1,.3,1);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #panel.open { transform: translateX(0); }
+
+  .panel-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 30px; height: 30px;
+    background: transparent; border: 1px solid var(--border);
+    color: rgba(255,255,255,0.4); font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10; transition: all .2s; font-family: sans-serif;
+  }
+  .panel-close:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* Hero image */
+  .p-hero {
+    position: relative; height: 195px; overflow: hidden;
+    flex-shrink: 0; background: var(--bg3);
+  }
+  .p-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .p-hero-grad {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(13,15,26,.97) 0%,
+      rgba(13,15,26,.12) 60%, transparent 100%);
+  }
+  .p-hero-text { position: absolute; bottom: 18px; left: 22px; }
+
+  /* Header without image */
+  .p-head {
+    padding: 48px 22px 20px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+
+  .p-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px; font-weight: 700;
+    color: #fff; line-height: 1; letter-spacing: .03em;
+  }
+  .p-id {
+    font-size: 10px; color: var(--gold);
+    letter-spacing: .35em; margin-top: 6px; font-weight: 600;
+  }
+
+  /* Body */
+  .p-body { flex: 1; overflow-y: auto; }
+  .p-body::-webkit-scrollbar { width: 3px; }
+  .p-body::-webkit-scrollbar-track { background: transparent; }
+  .p-body::-webkit-scrollbar-thumb { background: rgba(201,168,76,.25); border-radius: 2px; }
+
+  /* Info section */
+  .p-section { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+  .p-section-ttl {
+    font-size: 9px; letter-spacing: .38em; color: var(--gold);
+    font-weight: 700; margin-bottom: 14px; text-transform: uppercase;
+  }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+  .info-lbl {
+    font-size: 9px; color: rgba(255,255,255,.28);
+    letter-spacing: .22em; margin-bottom: 4px; text-transform: uppercase;
+  }
+  .info-val { font-size: 13px; color: var(--text); line-height: 1.4; }
+  .season-tag {
+    display: inline-block; padding: 2px 9px;
+    background: rgba(201,168,76,.1);
+    border: 1px solid rgba(201,168,76,.25);
+    color: var(--gold2); font-size: 11px;
+  }
+
+  /* Description */
+  .p-desc-section { padding: 18px 22px; }
+  .p-desc {
+    font-size: 13px; line-height: 1.95;
+    color: rgba(224,216,200,.78); text-align: justify;
+  }
+  .p-desc::first-letter {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px; float: left; line-height: .85;
+    margin: 4px 5px 0 0; color: var(--gold); font-weight: 600;
+  }
+
+  /* Empty state */
+  .p-empty { padding: 32px 22px; text-align: center; }
+  .p-empty-icon {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 44px; color: rgba(255,255,255,.07); margin-bottom: 16px;
+  }
+  .p-empty-txt {
+    font-size: 12px; color: rgba(255,255,255,.28);
+    line-height: 1.9; letter-spacing: .05em;
+  }
+  .p-empty-txt code { color: var(--gold); font-size: 11px; }
+
+  /* Loader */
+  #loader {
+    position: fixed; top: 54px; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; z-index: 60; background: var(--bg);
+  }
+  .spin {
+    width: 38px; height: 38px;
+    border: 2px solid rgba(201,168,76,.2);
+    border-top-color: var(--gold);
+    border-radius: 50%; animation: rot 1s linear infinite;
+  }
+  .loader-txt {
+    font-size: 12px; color: rgba(255,255,255,.25); letter-spacing: .35em;
+  }
+  @keyframes rot { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-main">寰宇图鉴</span>
+    <span class="logo-sub">Atlas Mundi</span>
+  </div>
+  <div class="header-hint">
+    点击任意国家查看详情 · <b>金色</b>国家已收录于数据库
+  </div>
+</header>
+
+<div id="loader">
+  <div class="spin"></div>
+  <div class="loader-txt">正 在 绘 制 世 界</div>
+</div>
+
+<div id="stage">
+  <svg id="map-svg"></svg>
+</div>
+
+<div id="tooltip"></div>
+
+<div class="zoom-btns">
+  <button class="z-btn" id="zIn">+</button>
+  <button class="z-btn" id="zOut">−</button>
+  <button class="z-btn" id="zRes" style="font-size:14px">⌖</button>
+</div>
+
+<div class="legend">
+  <div class="legend-row">
+    <div class="legend-dot" style="background:var(--land-db)"></div>
+    <span>数据库已收录</span>
+  </div>
+  <div class="legend-row">
+    <div class="legend-dot" style="background:var(--land)"></div>
+    <span>暂无数据</span>
+  </div>
+</div>
+
+<div id="panel">
+  <button class="panel-close" id="panelClose">×</button>
+  <div id="panelContent"></div>
+</div>
+
+<!-- ══ DB DATA FROM FASTAPI (Jinja2) ══ -->
+<script id="db-raw" type="application/json">{{ countries_json | safe }}</script>
+
+<script>
+/* ── ISO mappings ── */
+const ISO_NUM = {
+  "156":"CHN","392":"JPN","840":"USA","250":"FRA","826":"GBR","276":"DEU","380":"ITA",
+  "643":"RUS","356":"IND","076":"BRA","124":"CAN","036":"AUS","818":"EGY","710":"ZAF",
+  "484":"MEX","410":"KOR","764":"THA","360":"IDN","792":"TUR","032":"ARG","724":"ESP",
+  "300":"GRC","528":"NLD","756":"CHE","578":"NOR","752":"SWE","784":"ARE","682":"SAU",
+  "704":"VNM","702":"SGP","458":"MYS","608":"PHL","554":"NZL","616":"POL","620":"PRT",
+  "372":"IRL","604":"PER","376":"ISR","246":"FIN","208":"DNK","056":"BEL","040":"AUT",
+  "203":"CZE","348":"HUN","642":"ROU","804":"UKR","364":"IRN","368":"IRQ","566":"NGA",
+  "404":"KEN","231":"ETH","504":"MAR","012":"DZA","788":"TUN","170":"COL","152":"CHL",
+  "586":"PAK","050":"BGD","104":"MMR","496":"MNG","398":"KAZ","024":"AGO","508":"MOZ",
+  "191":"HRV","100":"BGR","688":"SRB","703":"SVK","070":"BIH","008":"ALB","807":"MKD",
+  "192":"CUB","218":"ECU","068":"BOL","600":"PRY","858":"URY","268":"GEO","051":"ARM",
+  "031":"AZE","729":"SDN","646":"RWA","800":"UGA","716":"ZWE","450":"MDG","834":"TZA",
+  "288":"GHA","112":"BLR","440":"LTU","428":"LVA","233":"EST","442":"LUX","470":"MLT",
+  "196":"CYP","705":"SVN","499":"MNE","498":"MDA","352":"ISL"
+};
+
+const EN_ISO = {
+  "China":"CHN","Japan":"JPN","United States of America":"USA","France":"FRA",
+  "United Kingdom":"GBR","Germany":"DEU","Italy":"ITA","Russia":"RUS","India":"IND",
+  "Brazil":"BRA","Canada":"CAN","Australia":"AUS","Egypt":"EGY","South Africa":"ZAF",
+  "Mexico":"MEX","South Korea":"KOR","Thailand":"THA","Indonesia":"IDN","Turkey":"TUR",
+  "Argentina":"ARG","Spain":"ESP","Greece":"GRC","Netherlands":"NLD","Switzerland":"CHE",
+  "Norway":"NOR","Sweden":"SWE","Saudi Arabia":"SAU","Vietnam":"VNM","Singapore":"SGP",
+  "Malaysia":"MYS","Philippines":"PHL","New Zealand":"NZL","Poland":"POL","Portugal":"PRT",
+  "Ireland":"IRL","Peru":"PER","Israel":"ISR","Finland":"FIN","Denmark":"DNK",
+  "Belgium":"BEL","Austria":"AUT","Czechia":"CZE","Hungary":"HUN","Romania":"ROU",
+  "Ukraine":"UKR","Belarus":"BLR","Lithuania":"LTU","Latvia":"LVA","Estonia":"EST",
+  "Croatia":"HRV","Bulgaria":"BGR","Serbia":"SRB","Slovakia":"SVK",
+  "Bosnia and Herzegovina":"BIH","Albania":"ALB","North Macedonia":"MKD",
+  "Moldova":"MDA","Luxembourg":"LUX","Malta":"MLT","Cyprus":"CYP","Slovenia":"SVN",
+  "Montenegro":"MNE","Iceland":"ISL","Kosovo":"XKX"
+};
+
+const EN_CN = {
+  "China":"中国","Japan":"日本","United States of America":"美国","France":"法国",
+  "United Kingdom":"英国","Germany":"德国","Italy":"意大利","Russia":"俄罗斯",
+  "India":"印度","Brazil":"巴西","Canada":"加拿大","Australia":"澳大利亚","Egypt":"埃及",
+  "South Africa":"南非","Mexico":"墨西哥","South Korea":"韩国","Thailand":"泰国",
+  "Indonesia":"印尼","Turkey":"土耳其","Argentina":"阿根廷","Spain":"西班牙",
+  "Greece":"希腊","Netherlands":"荷兰","Switzerland":"瑞士","Norway":"挪威",
+  "Sweden":"瑞典","United Arab Emirates":"阿联酋","Saudi Arabia":"沙特",
+  "Vietnam":"越南","Singapore":"新加坡","Malaysia":"马来西亚","Philippines":"菲律宾",
+  "New Zealand":"新西兰","Poland":"波兰","Portugal":"葡萄牙","Ireland":"爱尔兰",
+  "Peru":"秘鲁","Israel":"以色列","Finland":"芬兰","Denmark":"丹麦","Belgium":"比利时",
+  "Austria":"奥地利","Czechia":"捷克","Hungary":"匈牙利","Romania":"罗马尼亚",
+  "Ukraine":"乌克兰","Belarus":"白俄罗斯","Lithuania":"立陶宛","Latvia":"拉脱维亚",
+  "Estonia":"爱沙尼亚","Croatia":"克罗地亚","Bulgaria":"保加利亚","Serbia":"塞尔维亚",
+  "Slovakia":"斯洛伐克","Bosnia and Herzegovina":"波斯尼亚和黑塞哥维那",
+  "Albania":"阿尔巴尼亚","North Macedonia":"北马其顿","Moldova":"摩尔多瓦",
+  "Luxembourg":"卢森堡","Malta":"马耳他","Cyprus":"塞浦路斯","Slovenia":"斯洛文尼亚",
+  "Montenegro":"黑山","Iceland":"冰岛","Kosovo":"科索沃","Iran":"伊朗","Iraq":"伊拉克",
+  "Nigeria":"尼日利亚","Kenya":"肯尼亚","Ethiopia":"埃塞俄比亚","Morocco":"摩洛哥",
+  "Algeria":"阿尔及利亚","Colombia":"哥伦比亚","Chile":"智利","Pakistan":"巴基斯坦",
+  "Bangladesh":"孟加拉","Myanmar":"缅甸","Mongolia":"蒙古","Kazakhstan":"哈萨克",
+  "Cuba":"古巴","Ecuador":"厄瓜多尔","Sudan":"苏丹","Rwanda":"卢旺达",
+  "Uganda":"乌干达","Zimbabwe":"津巴布韦","Madagascar":"马达加斯加",
+  "Tanzania":"坦桑尼亚","Ghana":"加纳","Georgia":"格鲁吉亚","Armenia":"亚美尼亚",
+  "Azerbaijan":"阿塞拜疆","Venezuela":"委内瑞拉","Angola":"安哥拉"
+};
+
+/* ── Chinese name → ISO (from DB) ── */
+const CN_ISO = {
+  "法国":"FRA","意大利":"ITA","西班牙":"ESP","德国":"DEU","英国":"GBR",
+  "葡萄牙":"PRT","荷兰":"NLD","比利时":"BEL","瑞士":"CHE","奥地利":"AUT",
+  "希腊":"GRC","瑞典":"SWE","挪威":"NOR","丹麦":"DNK","芬兰":"FIN",
+  "冰岛":"ISL","爱尔兰":"IRL","波兰":"POL","捷克":"CZE","匈牙利":"HUN",
+  "罗马尼亚":"ROU","保加利亚":"BGR","克罗地亚":"HRV","斯洛文尼亚":"SVN",
+  "斯洛伐克":"SVK","乌克兰":"UKR","白俄罗斯":"BLR","立陶宛":"LTU",
+  "拉脱维亚":"LVA","爱沙尼亚":"EST","塞尔维亚":"SRB","黑山":"MNE",
+  "波斯尼亚和黑塞哥维那":"BIH","阿尔巴尼亚":"ALB","北马其顿":"MKD",
+  "科索沃":"XKX","摩尔多瓦":"MDA","卢森堡":"LUX","列支敦士登":"LIE",
+  "摩纳哥":"MCO","安道尔":"AND","圣马力诺":"SMR","梵蒂冈":"VAT",
+  "马耳他":"MLT","塞浦路斯":"CYP","俄罗斯":"RUS","土耳其":"TUR",
+  "中国":"CHN","日本":"JPN","美国":"USA","印度":"IND","巴西":"BRA",
+  "加拿大":"CAN","澳大利亚":"AUS","埃及":"EGY","南非":"ZAF","墨西哥":"MEX",
+  "韩国":"KOR","泰国":"THA","印尼":"IDN","阿根廷":"ARG","荷兰":"NLD"
+};
+
+/* ── Parse DB ── */
+let rawDB = [];
+try { rawDB = JSON.parse(document.getElementById("db-raw").textContent); }
+catch(e) { rawDB = []; }
+
+const DB = {};
+rawDB.forEach(c => {
+  const iso = CN_ISO[c.name];
+  if (iso) DB[iso] = c;
+});
+
+/* ── STATE ── */
+const S = { svg:null, g:null, zoom:null, path:null, feats:[], active:null };
+
+function getISO(f) {
+  return ISO_NUM[f.id] ||
+    (f.properties.iso_a3 && f.properties.iso_a3 !== "-99"
+      ? f.properties.iso_a3 : null) ||
+    EN_ISO[f.properties.name || ""] || null;
+}
+function getCN(f) {
+  return EN_CN[f.properties.name || ""] || f.properties.name || "";
+}
+
+/* ── INIT ── */
+async function init() {
+  try {
+    const world = await fetch(
+      "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"
+    ).then(r => r.json());
+    const feats = topojson.feature(world, world.objects.countries).features;
+    feats.forEach(f => { f.__iso = getISO(f); f.__cn = getCN(f); });
+    S.feats = feats;
+    document.getElementById("loader").style.display = "none";
+    buildMap();
+  } catch(e) {
+    document.getElementById("loader").innerHTML =
+      '<div style="font-size:13px;color:rgba(220,80,60,.7);letter-spacing:.1em">地图加载失败，请检查网络连接后刷新</div>';
+  }
+}
+
+/* ── BUILD MAP ── */
+function buildMap() {
+  const stage = document.getElementById("stage");
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const svg = d3.select("#map-svg");
+  svg.attr("viewBox", `0 0 ${W} ${H}`).selectAll("*").remove();
+
+  const defs = svg.append("defs");
+  const og = defs.append("radialGradient")
+    .attr("id","og").attr("cx","50%").attr("cy","50%").attr("r","70%");
+  og.append("stop").attr("offset","0%").attr("stop-color","#111825");
+  og.append("stop").attr("offset","100%").attr("stop-color","#080c14");
+  svg.append("rect").attr("width",W).attr("height",H).attr("fill","url(#og)");
+
+  const proj = d3.geoNaturalEarth1()
+    .scale(W / 6.3).translate([W / 2, H / 2]);
+  const path = d3.geoPath().projection(proj);
+  S.path = path;
+
+  const g = svg.append("g");
+
+  g.append("path")
+    .datum(d3.geoGraticule10())
+    .attr("fill","none").attr("stroke","rgba(255,255,255,.025)")
+    .attr("stroke-width",.5).attr("d", path);
+
+  g.append("g")
+    .selectAll("path.c-path")
+    .data(S.feats).enter().append("path")
+    .attr("class", d => "c-path" + (d.__iso && DB[d.__iso] ? " has-db" : ""))
+    .attr("d", path)
+    .attr("data-iso", d => d.__iso || "")
+    .on("mouseenter", function(ev, d) {
+      if (!d3.select(this).classed("active"))
+        d3.select(this).classed("hov", true);
+      showTip(ev, d);
+    })
+    .on("mousemove", moveTip)
+    .on("mouseleave", function(ev, d) {
+      d3.select(this).classed("hov", false);
+      hideTip();
+    })
+    .on("click", (ev, d) => { ev.stopPropagation(); onClick(d); });
+
+  g.append("g")
+    .selectAll("text.c-label")
+    .data(S.feats.filter(f => {
+      const a = d3.geoArea(f);
+      return a > 0.012 || (f.__iso && DB[f.__iso]);
+    }))
+    .enter().append("text")
+    .attr("class", d => "c-label" + (d.__iso && DB[d.__iso] ? " has-db" : ""))
+    .attr("transform", d => {
+      const c = path.centroid(d);
+      return `translate(${c[0]},${c[1]})`;
+    })
+    .text(d => d.__cn)
+    .style("display", d => {
+      const a = d3.geoArea(d);
+      if (d.__iso && DB[d.__iso]) return null;
+      return a > 0.04 ? null : "none";
+    });
+
+  const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", ev => {
+    g.attr("transform", ev.transform);
+    const k = ev.transform.k;
+    g.selectAll(".c-path").attr("stroke-width", .4 / k);
+    const sc = 1 / Math.sqrt(k);
+    g.selectAll(".c-label")
+      .attr("transform", function(d) {
+        const c = path.centroid(d);
+        return `translate(${c[0]},${c[1]}) scale(${sc})`;
+      })
+      .style("display", function(d) {
+        const a = d3.geoArea(d), hasDB = d.__iso && DB[d.__iso];
+        if (hasDB) return null;
+        if (a > 0.15) return null;
+        if (a > 0.04) return k > 1 ? null : "none";
+        if (a > 0.012) return k > 2.5 ? null : "none";
+        return "none";
+      });
+  });
+
+  svg.call(zoom).on("dblclick.zoom", null)
+    .on("mousedown.c", () => svg.classed("dragging", true))
+    .on("mouseup.c", () => svg.classed("dragging", false))
+    .on("click", () => closePanel());
+
+  S.svg = svg; S.g = g; S.zoom = zoom;
+
+  document.getElementById("zIn").onclick = () =>
+    S.svg.transition().duration(280).call(S.zoom.scaleBy, 1.5);
+  document.getElementById("zOut").onclick = () =>
+    S.svg.transition().duration(280).call(S.zoom.scaleBy, .67);
+  document.getElementById("zRes").onclick = () =>
+    S.svg.transition().duration(380).call(S.zoom.transform, d3.zoomIdentity);
+  document.getElementById("panelClose").onclick = closePanel;
+}
+
+/* ── TOOLTIP ── */
+function showTip(ev, f) {
+  const t = document.getElementById("tooltip");
+  const hasDB = f.__iso && DB[f.__iso];
+  t.innerHTML = (f.__cn || "—") +
+    (hasDB ? '<span class="tip-badge">已收录</span>' : "");
+  t.classList.add("show");
+  moveTip(ev);
+}
+function moveTip(ev) {
+  const t = document.getElementById("tooltip");
+  t.style.left = ev.clientX + "px";
+  t.style.top  = ev.clientY + "px";
+}
+function hideTip() {
+  document.getElementById("tooltip").classList.remove("show");
+}
+
+/* ── CLICK ── */
+function onClick(f) {
+  hideTip();
+  S.g.selectAll(".c-path.active").classed("active", false);
+  if (f.__iso)
+    S.g.selectAll(`.c-path[data-iso="${f.__iso}"]`).classed("active", true);
+  S.active = f;
+  openPanel(f);
+}
+
+/* ── PANEL ── */
+function openPanel(f) {
+  const db = f.__iso ? DB[f.__iso] : null;
+  document.getElementById("panelContent").innerHTML =
+    db ? buildWithDB(db) : buildEmpty(f.__cn);
+  document.getElementById("panel").classList.add("open");
+}
+function closePanel() {
+  document.getElementById("panel").classList.remove("open");
+  if (S.g) S.g.selectAll(".c-path.active").classed("active", false);
+  S.active = null;
+}
+
+function buildWithDB(d) {
+  const hero = d.image_url
+    ? `<div class="p-hero">
+        <img src="${d.image_url}" alt="${d.name}" loading="lazy">
+        <div class="p-hero-grad"></div>
+        <div class="p-hero-text">
+          <div class="p-name">${d.name}</div>
+          <div class="p-id">数据库编号 · ${String(d.id).padStart(3,"0")}</div>
+        </div>
+      </div>`
+    : `<div class="p-head">
+        <div class="p-name">${d.name}</div>
+        <div class="p-id">数据库编号 · ${String(d.id).padStart(3,"0")}</div>
+      </div>`;
+
+  const cells = [
+    ["首都", d.capital],
+    ["官方语言", d.language],
+    ["流通货币", d.currency],
+    ["最佳旅行季节", d.best_season
+      ? `<span class="season-tag">${d.best_season}</span>` : "—"]
+  ].map(([l,v]) => `
+    <div>
+      <div class="info-lbl">${l}</div>
+      <div class="info-val">${v}</div>
+    </div>`).join("");
+
+  return `${hero}
+  <div class="p-body">
+    <div class="p-section">
+      <div class="p-section-ttl">基本信息</div>
+      <div class="info-grid">${cells}</div>
+    </div>
+    <div class="p-desc-section">
+      <div class="p-section-ttl">旅行简介</div>
+      <div class="p-desc">${d.description}</div>
+    </div>
+  </div>`;
+}
+
+function buildEmpty(name) {
+  return `<div class="p-head">
+    <div class="p-name">${name || "未知"}</div>
+    <div class="p-id" style="color:rgba(255,255,255,.18)">暂未收录</div>
+  </div>
+  <div class="p-body">
+    <div class="p-empty">
+      <div class="p-empty-icon">◈</div>
+      <div class="p-empty-txt">
+        <b style="color:rgba(224,216,200,.65)">${name || "该国家"}</b>
+        尚未录入数据库。<br><br>
+        请在 <code>countries</code> 表中<br>
+        插入记录后即可显示详情。
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── KEYBOARD & RESIZE ── */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closePanel();
+});
+let rTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(rTimer);
+  rTimer = setTimeout(() => { if (S.feats.length) buildMap(); }, 200);
+});
+
+init();
+</script>
+</body>
+</html>
