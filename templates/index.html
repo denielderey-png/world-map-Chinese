@@ -135,6 +135,14 @@
     display: flex; flex-direction: column; overflow: hidden;
   }
   #panel.open { transform: translateX(0); }
+  /* panelContent 把 panel 的 flex 流量传给内部的 p-hero+p-body */
+  #panelContent {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
   .panel-close {
     position: absolute; top: 14px; right: 14px;
@@ -148,16 +156,59 @@
 
   /* Hero image */
   .p-hero {
-    position: relative; height: 195px; overflow: hidden;
+    position: relative; height: 260px; overflow: hidden;
     flex-shrink: 0; background: var(--bg3);
   }
-  .p-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .p-hero img {
+    width: 100%; height: 100%; object-fit: cover;
+    object-position: center 35%;  /* 偏上一点, 大多数地标主体在画面上半部 */
+    display: block;
+    position: relative; z-index: 2;
+  }
+  .p-hero-svg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .p-hero-svg svg { width: 100%; height: 100%; display: block; }
   .p-hero-grad {
     position: absolute; inset: 0;
     background: linear-gradient(to top, rgba(13,15,26,.97) 0%,
       rgba(13,15,26,.12) 60%, transparent 100%);
+    z-index: 3;
   }
-  .p-hero-text { position: absolute; bottom: 18px; left: 22px; }
+  .p-hero-text { position: absolute; bottom: 18px; left: 22px; z-index: 4; }
+
+  /* Pixabay 跳转按钮（用于无法直接嵌入的图片源） */
+  .p-hero-link {
+    position: absolute;
+    bottom: 16px; right: 18px;
+    z-index: 5;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px;
+    background: rgba(13, 15, 26, 0.78);
+    border: 1px solid rgba(212, 175, 55, 0.55);
+    border-radius: 6px;
+    color: #d4af37;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(6px);
+    transition: all .2s;
+  }
+  .p-hero-link:hover {
+    background: rgba(212, 175, 55, 0.18);
+    border-color: #d4af37;
+    transform: translateY(-1px);
+  }
+  .p-hero-link::after {
+    content: '↗';
+    font-size: 13px;
+    line-height: 1;
+  }
 
   /* Header without image */
   .p-head {
@@ -176,10 +227,18 @@
   }
 
   /* Body */
-  .p-body { flex: 1; overflow-y: auto; }
-  .p-body::-webkit-scrollbar { width: 3px; }
+  .p-body {
+    flex: 1 1 auto;
+    min-height: 0;              /* flex 子项默认 min-height:auto 会撑爆父容器导致 overflow 失效 */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;  /* iOS 流畅滚动 */
+    padding-bottom: 40px;       /* 底部留空让最后一段不贴边 */
+  }
+  .p-body::-webkit-scrollbar { width: 6px; }
   .p-body::-webkit-scrollbar-track { background: transparent; }
-  .p-body::-webkit-scrollbar-thumb { background: rgba(201,168,76,.25); border-radius: 2px; }
+  .p-body::-webkit-scrollbar-thumb { background: rgba(201,168,76,.4); border-radius: 3px; }
+  .p-body::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,.7); }
 
   /* Info section */
   .p-section { padding: 18px 22px; border-bottom: 1px solid var(--border); }
@@ -240,6 +299,118 @@
     font-size: 12px; color: rgba(255,255,255,.25); letter-spacing: .35em;
   }
   @keyframes rot { to { transform: rotate(360deg); } }
+
+  /* ─── DETAIL BLOCKS ─── */
+  .p-detail-blk {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .p-detail-blk:last-child { border-bottom: none; }
+  .p-detail-row {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .p-detail-row:last-child { margin-bottom: 0; }
+  .p-detail-icon {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--gold); font-size: 13px;
+    font-family: 'Cormorant Garamond', serif;
+    border: 1px solid rgba(201,168,76,.3);
+    border-radius: 50%;
+  }
+  .p-detail-ttl {
+    font-size: 10px; letter-spacing: .35em; color: var(--gold);
+    font-weight: 700; text-transform: uppercase;
+  }
+  .p-detail-txt {
+    margin-top: 6px; margin-left: 32px;
+    font-size: 12.5px; line-height: 1.85;
+    color: rgba(224,216,200,.78); text-align: justify;
+  }
+  .p-meta-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 11px 18px;
+    margin-top: 6px; margin-left: 32px;
+  }
+  .p-meta-cell .info-lbl {
+    font-size: 9px; color: rgba(255,255,255,.28);
+    letter-spacing: .22em; margin-bottom: 3px;
+  }
+  .p-meta-cell .info-val { font-size: 12.5px; color: var(--text); line-height: 1.4; }
+
+  /* ─── CITY MARKERS ─── */
+  .city-dot {
+    fill: var(--gold2);
+    stroke: rgba(8,9,15,.95); stroke-width: 1.4px;
+    cursor: pointer;
+    transition: r .15s, fill .15s;
+  }
+  .city-dot:hover { fill: #fff; }
+  .city-dot.cap-star { fill: var(--gold); }
+  .city-label {
+    font-family: 'Noto Serif SC', serif;
+    text-anchor: middle; pointer-events: none;
+    paint-order: stroke;
+    stroke: rgba(8,9,15,.92); stroke-linejoin: round; stroke-width: 2.5px;
+    fill: rgba(255,255,255,.88); font-size: 11px;
+    font-weight: 500; user-select: none;
+  }
+  .city-label.is-cap { fill: var(--gold2); font-weight: 700; font-size: 12px; }
+  .cities-layer { pointer-events: auto; }
+
+  /* ─── MICRO-STATE MARKERS (微型国家) ─── */
+  .micro-layer { pointer-events: auto; }
+  .micro { transition: transform .2s; }
+  .micro-halo { transition: r .2s, stroke .2s; }
+  .micro:hover .micro-halo {
+    stroke: var(--gold2) !important;
+    stroke-width: 1.5px;
+  }
+  .micro:hover .micro-dot {
+    fill: #fff !important;
+  }
+  .micro-label {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 10px;
+    fill: rgba(255,255,255,.5);
+    paint-order: stroke;
+    stroke: rgba(8,9,15,.9);
+    stroke-linejoin: round;
+    stroke-width: 2.5px;
+    pointer-events: none;
+    user-select: none;
+    font-weight: 500;
+  }
+  .micro-label.has-db {
+    fill: var(--gold2);
+    font-weight: 700;
+  }
+
+  /* ─── RESET / RETURN BUTTON ─── */
+  #zoomBack {
+    position: fixed;
+    top: 70px; left: 24px;
+    z-index: 70;
+    padding: 8px 16px;
+    background: rgba(8,9,15,0.96);
+    border: 1px solid var(--gold);
+    color: var(--gold); font-size: 12px;
+    letter-spacing: .18em;
+    cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .25s, transform .25s, background .2s;
+    pointer-events: none;
+  }
+  #zoomBack.show {
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+  #zoomBack:hover { background: var(--gold); color: #000; }
+  #zoomBack::before {
+    content: "‹ "; font-family: sans-serif; font-weight: 700;
+  }
 </style>
 </head>
 <body>
@@ -250,7 +421,7 @@
     <span class="logo-sub">Atlas Mundi</span>
   </div>
   <div class="header-hint">
-    点击任意国家查看详情 · <b>金色</b>国家已收录于数据库
+    点击<b>金色</b>国家查看详情并查看城市分布
   </div>
 </header>
 
@@ -262,6 +433,8 @@
 <div id="stage">
   <svg id="map-svg"></svg>
 </div>
+
+<button id="zoomBack">返回全局</button>
 
 <div id="tooltip"></div>
 
@@ -291,22 +464,40 @@
 <script id="db-raw" type="application/json">{{ countries_json | safe }}</script>
 
 <script>
-/* ── ISO mappings ── */
+/* ── ISO mappings (完整覆盖 99 国 + 常见邻国) ── */
 const ISO_NUM = {
-  "156":"CHN","392":"JPN","840":"USA","250":"FRA","826":"GBR","276":"DEU","380":"ITA",
-  "643":"RUS","356":"IND","076":"BRA","124":"CAN","036":"AUS","818":"EGY","710":"ZAF",
-  "484":"MEX","410":"KOR","764":"THA","360":"IDN","792":"TUR","032":"ARG","724":"ESP",
-  "300":"GRC","528":"NLD","756":"CHE","578":"NOR","752":"SWE","784":"ARE","682":"SAU",
-  "704":"VNM","702":"SGP","458":"MYS","608":"PHL","554":"NZL","616":"POL","620":"PRT",
-  "372":"IRL","604":"PER","376":"ISR","246":"FIN","208":"DNK","056":"BEL","040":"AUT",
-  "203":"CZE","348":"HUN","642":"ROU","804":"UKR","364":"IRN","368":"IRQ","566":"NGA",
-  "404":"KEN","231":"ETH","504":"MAR","012":"DZA","788":"TUN","170":"COL","152":"CHL",
-  "586":"PAK","050":"BGD","104":"MMR","496":"MNG","398":"KAZ","024":"AGO","508":"MOZ",
-  "191":"HRV","100":"BGR","688":"SRB","703":"SVK","070":"BIH","008":"ALB","807":"MKD",
-  "192":"CUB","218":"ECU","068":"BOL","600":"PRY","858":"URY","268":"GEO","051":"ARM",
-  "031":"AZE","729":"SDN","646":"RWA","800":"UGA","716":"ZWE","450":"MDG","834":"TZA",
-  "288":"GHA","112":"BLR","440":"LTU","428":"LVA","233":"EST","442":"LUX","470":"MLT",
-  "196":"CYP","705":"SVN","499":"MNE","498":"MDA","352":"ISL"
+  // 欧洲
+  "250":"FRA","380":"ITA","724":"ESP","276":"DEU","826":"GBR",
+  "620":"PRT","528":"NLD","056":"BEL","756":"CHE","040":"AUT",
+  "300":"GRC","752":"SWE","578":"NOR","208":"DNK","246":"FIN",
+  "352":"ISL","372":"IRL","616":"POL","203":"CZE","348":"HUN",
+  "642":"ROU","100":"BGR","191":"HRV","705":"SVN","703":"SVK",
+  "804":"UKR","112":"BLR","440":"LTU","428":"LVA","233":"EST",
+  "688":"SRB","499":"MNE","070":"BIH","008":"ALB","807":"MKD",
+  "412":"XKX","498":"MDA","442":"LUX","438":"LIE","492":"MCO",
+  "020":"AND","674":"SMR","336":"VAT","470":"MLT","196":"CYP",
+  "643":"RUS","792":"TUR",
+  // 亚洲
+  "156":"CHN","392":"JPN","410":"KOR","356":"IND","764":"THA",
+  "704":"VNM","360":"IDN","458":"MYS","702":"SGP","608":"PHL",
+  "784":"ARE","682":"SAU","376":"ISR","398":"KAZ","268":"GEO",
+  "051":"ARM","031":"AZE","524":"NPL","144":"LKA","496":"MNG",
+  "104":"MMR","116":"KHM","418":"LAO",
+  // 美洲
+  "840":"USA","124":"CAN","484":"MEX","076":"BRA","032":"ARG",
+  "604":"PER","170":"COL","152":"CHL","192":"CUB","862":"VEN",
+  "218":"ECU","068":"BOL","600":"PRY","858":"URY",
+  // 非洲
+  "818":"EGY","504":"MAR","710":"ZAF","404":"KEN","834":"TZA",
+  "231":"ETH","288":"GHA","566":"NGA","450":"MDG","716":"ZWE",
+  "646":"RWA",
+  // 大洋洲
+  "036":"AUS","554":"NZL","598":"PNG","242":"FJI",
+  // 其他常见(用于邻国识别,不在 DB 中)
+  "364":"IRN","368":"IRQ","012":"DZA","788":"TUN","586":"PAK",
+  "050":"BGD","024":"AGO","508":"MOZ","729":"SDN","800":"UGA",
+  // 极地与海外属地(world-atlas 50m 中作为独立 feature 出现)
+  "304":"GRL","010":"ATA"
 };
 
 const EN_ISO = {
@@ -323,38 +514,134 @@ const EN_ISO = {
   "Croatia":"HRV","Bulgaria":"BGR","Serbia":"SRB","Slovakia":"SVK",
   "Bosnia and Herzegovina":"BIH","Albania":"ALB","North Macedonia":"MKD",
   "Moldova":"MDA","Luxembourg":"LUX","Malta":"MLT","Cyprus":"CYP","Slovenia":"SVN",
-  "Montenegro":"MNE","Iceland":"ISL","Kosovo":"XKX"
+  "Montenegro":"MNE","Iceland":"ISL","Kosovo":"XKX",
+  "Nepal":"NPL","Sri Lanka":"LKA","Cambodia":"KHM","Laos":"LAO","Myanmar":"MMR",
+  "Mongolia":"MNG","Kazakhstan":"KAZ","Georgia":"GEO","Armenia":"ARM","Azerbaijan":"AZE",
+  "Cuba":"CUB","Ecuador":"ECU","Bolivia":"BOL","Paraguay":"PRY","Uruguay":"URY",
+  "Venezuela":"VEN","Colombia":"COL","Peru":"PER","Chile":"CHL",
+  "Tanzania":"TZA","Kenya":"KEN","Ethiopia":"ETH","Ghana":"GHA","Nigeria":"NGA",
+  "Morocco":"MAR","Rwanda":"RWA","Zimbabwe":"ZWE","Madagascar":"MDG",
+  "Papua New Guinea":"PNG","Fiji":"FJI",
+  // 亚洲扩展
+  "Pakistan":"PAK","Afghanistan":"AFG","Iran":"IRN","Iraq":"IRQ","Syria":"SYR",
+  "Lebanon":"LBN","Jordan":"JOR","Palestine":"PSE","Qatar":"QAT","Bahrain":"BHR",
+  "Kuwait":"KWT","Oman":"OMN","Yemen":"YEM","Bhutan":"BTN","Bangladesh":"BGD",
+  "Maldives":"MDV","Brunei":"BRN","Timor-Leste":"TLS","East Timor":"TLS",
+  "Kyrgyzstan":"KGZ","Tajikistan":"TJK","Turkmenistan":"TKM","Uzbekistan":"UZB",
+  "North Korea":"PRK","Dem. Rep. Korea":"PRK","Taiwan":"TWN",
+  // 美洲扩展
+  "Guatemala":"GTM","Belize":"BLZ","El Salvador":"SLV","Honduras":"HND",
+  "Nicaragua":"NIC","Costa Rica":"CRI","Panama":"PAN","Haiti":"HTI",
+  "Dominican Republic":"DOM","Jamaica":"JAM","Bahamas":"BHS","The Bahamas":"BHS",
+  "Trinidad and Tobago":"TTO","Guyana":"GUY","Suriname":"SUR",
+  // 非洲扩展
+  "Algeria":"DZA","Tunisia":"TUN","Libya":"LBY","Sudan":"SDN","South Sudan":"SSD",
+  "S. Sudan":"SSD","Eritrea":"ERI","Djibouti":"DJI","Somalia":"SOM","Uganda":"UGA",
+  "Burundi":"BDI","Dem. Rep. Congo":"COD","Democratic Republic of the Congo":"COD",
+  "Republic of the Congo":"COG","Congo":"COG","Central African Rep.":"CAF",
+  "Central African Republic":"CAF","Cameroon":"CMR","Gabon":"GAB",
+  "Equatorial Guinea":"GNQ","São Tomé and Principe":"STP","Angola":"AGO",
+  "Zambia":"ZMB","Malawi":"MWI","Mozambique":"MOZ","Botswana":"BWA","Namibia":"NAM",
+  "Lesotho":"LSO","Swaziland":"SWZ","eSwatini":"SWZ","Comoros":"COM","Mauritius":"MUS",
+  "Seychelles":"SYC","Cape Verde":"CPV","Guinea-Bissau":"GNB","Guinea":"GIN",
+  "Sierra Leone":"SLE","Liberia":"LBR","Ivory Coast":"CIV","Côte d'Ivoire":"CIV",
+  "Togo":"TGO","Benin":"BEN","Burkina Faso":"BFA","Mali":"MLI","Niger":"NER",
+  "Chad":"TCD","Mauritania":"MRT","Senegal":"SEN","Gambia":"GMB","The Gambia":"GMB",
+  // 大洋洲扩展
+  "Solomon Islands":"SLB","Vanuatu":"VUT","Samoa":"WSM","Tonga":"TON",
+  "Kiribati":"KIR","Micronesia":"FSM","Marshall Islands":"MHL","Palau":"PLW",
+  "Nauru":"NRU","Tuvalu":"TUV",
+  // 极地
+  "Greenland":"GRL","Antarctica":"ATA"
 };
 
+/* ── 完整世界国家英中名映射（200+ 国家与地区，覆盖 world-atlas 50m 全部 feature）── */
 const EN_CN = {
-  "China":"中国","Japan":"日本","United States of America":"美国","France":"法国",
-  "United Kingdom":"英国","Germany":"德国","Italy":"意大利","Russia":"俄罗斯",
-  "India":"印度","Brazil":"巴西","Canada":"加拿大","Australia":"澳大利亚","Egypt":"埃及",
-  "South Africa":"南非","Mexico":"墨西哥","South Korea":"韩国","Thailand":"泰国",
-  "Indonesia":"印尼","Turkey":"土耳其","Argentina":"阿根廷","Spain":"西班牙",
-  "Greece":"希腊","Netherlands":"荷兰","Switzerland":"瑞士","Norway":"挪威",
-  "Sweden":"瑞典","United Arab Emirates":"阿联酋","Saudi Arabia":"沙特",
-  "Vietnam":"越南","Singapore":"新加坡","Malaysia":"马来西亚","Philippines":"菲律宾",
-  "New Zealand":"新西兰","Poland":"波兰","Portugal":"葡萄牙","Ireland":"爱尔兰",
-  "Peru":"秘鲁","Israel":"以色列","Finland":"芬兰","Denmark":"丹麦","Belgium":"比利时",
-  "Austria":"奥地利","Czechia":"捷克","Hungary":"匈牙利","Romania":"罗马尼亚",
-  "Ukraine":"乌克兰","Belarus":"白俄罗斯","Lithuania":"立陶宛","Latvia":"拉脱维亚",
-  "Estonia":"爱沙尼亚","Croatia":"克罗地亚","Bulgaria":"保加利亚","Serbia":"塞尔维亚",
-  "Slovakia":"斯洛伐克","Bosnia and Herzegovina":"波斯尼亚和黑塞哥维那",
-  "Albania":"阿尔巴尼亚","North Macedonia":"北马其顿","Moldova":"摩尔多瓦",
-  "Luxembourg":"卢森堡","Malta":"马耳他","Cyprus":"塞浦路斯","Slovenia":"斯洛文尼亚",
-  "Montenegro":"黑山","Iceland":"冰岛","Kosovo":"科索沃","Iran":"伊朗","Iraq":"伊拉克",
-  "Nigeria":"尼日利亚","Kenya":"肯尼亚","Ethiopia":"埃塞俄比亚","Morocco":"摩洛哥",
-  "Algeria":"阿尔及利亚","Colombia":"哥伦比亚","Chile":"智利","Pakistan":"巴基斯坦",
-  "Bangladesh":"孟加拉","Myanmar":"缅甸","Mongolia":"蒙古","Kazakhstan":"哈萨克",
-  "Cuba":"古巴","Ecuador":"厄瓜多尔","Sudan":"苏丹","Rwanda":"卢旺达",
-  "Uganda":"乌干达","Zimbabwe":"津巴布韦","Madagascar":"马达加斯加",
-  "Tanzania":"坦桑尼亚","Ghana":"加纳","Georgia":"格鲁吉亚","Armenia":"亚美尼亚",
-  "Azerbaijan":"阿塞拜疆","Venezuela":"委内瑞拉","Angola":"安哥拉"
+  // 亚洲
+  "China":"中国","Japan":"日本","South Korea":"韩国","North Korea":"朝鲜",
+  "Mongolia":"蒙古","Taiwan":"中国台湾","Hong Kong":"中国香港","Macau":"中国澳门",
+  "India":"印度","Pakistan":"巴基斯坦","Bangladesh":"孟加拉国",
+  "Nepal":"尼泊尔","Bhutan":"不丹","Sri Lanka":"斯里兰卡","Maldives":"马尔代夫",
+  "Afghanistan":"阿富汗",
+  "Thailand":"泰国","Vietnam":"越南","Indonesia":"印度尼西亚","Malaysia":"马来西亚",
+  "Singapore":"新加坡","Philippines":"菲律宾","Myanmar":"缅甸","Cambodia":"柬埔寨",
+  "Laos":"老挝","Brunei":"文莱","Timor-Leste":"东帝汶","East Timor":"东帝汶",
+  "Iran":"伊朗","Iraq":"伊拉克","Syria":"叙利亚","Lebanon":"黎巴嫩",
+  "Jordan":"约旦","Israel":"以色列","Palestine":"巴勒斯坦","Saudi Arabia":"沙特阿拉伯",
+  "Yemen":"也门","Oman":"阿曼","United Arab Emirates":"阿联酋","Qatar":"卡塔尔",
+  "Bahrain":"巴林","Kuwait":"科威特","Turkey":"土耳其",
+  "Kazakhstan":"哈萨克斯坦","Uzbekistan":"乌兹别克斯坦","Turkmenistan":"土库曼斯坦",
+  "Kyrgyzstan":"吉尔吉斯斯坦","Tajikistan":"塔吉克斯坦",
+  "Georgia":"格鲁吉亚","Armenia":"亚美尼亚","Azerbaijan":"阿塞拜疆",
+  "Cyprus":"塞浦路斯","Northern Cyprus":"北塞浦路斯",
+  // 欧洲
+  "Russia":"俄罗斯","Ukraine":"乌克兰","Belarus":"白俄罗斯","Moldova":"摩尔多瓦",
+  "Poland":"波兰","Czechia":"捷克","Czech Republic":"捷克","Slovakia":"斯洛伐克",
+  "Hungary":"匈牙利","Romania":"罗马尼亚","Bulgaria":"保加利亚",
+  "Germany":"德国","France":"法国","United Kingdom":"英国","Ireland":"爱尔兰",
+  "Netherlands":"荷兰","Belgium":"比利时","Luxembourg":"卢森堡",
+  "Switzerland":"瑞士","Austria":"奥地利","Liechtenstein":"列支敦士登",
+  "Italy":"意大利","Spain":"西班牙","Portugal":"葡萄牙","Andorra":"安道尔",
+  "Monaco":"摩纳哥","Vatican":"梵蒂冈","San Marino":"圣马力诺","Malta":"马耳他",
+  "Greece":"希腊","Albania":"阿尔巴尼亚","North Macedonia":"北马其顿","Macedonia":"北马其顿",
+  "Serbia":"塞尔维亚","Montenegro":"黑山","Kosovo":"科索沃",
+  "Bosnia and Herzegovina":"波斯尼亚和黑塞哥维那","Croatia":"克罗地亚",
+  "Slovenia":"斯洛文尼亚",
+  "Sweden":"瑞典","Norway":"挪威","Finland":"芬兰","Denmark":"丹麦","Iceland":"冰岛",
+  "Estonia":"爱沙尼亚","Latvia":"拉脱维亚","Lithuania":"立陶宛",
+  // 北美洲
+  "United States of America":"美国","United States":"美国","USA":"美国",
+  "Canada":"加拿大","Mexico":"墨西哥","Greenland":"格陵兰",
+  "Guatemala":"危地马拉","Belize":"伯利兹","Honduras":"洪都拉斯","El Salvador":"萨尔瓦多",
+  "Nicaragua":"尼加拉瓜","Costa Rica":"哥斯达黎加","Panama":"巴拿马",
+  "Cuba":"古巴","Jamaica":"牙买加","Haiti":"海地","Dominican Republic":"多米尼加",
+  "Bahamas":"巴哈马","The Bahamas":"巴哈马","Puerto Rico":"波多黎各",
+  "Trinidad and Tobago":"特立尼达和多巴哥",
+  // 南美洲
+  "Brazil":"巴西","Argentina":"阿根廷","Chile":"智利","Peru":"秘鲁",
+  "Colombia":"哥伦比亚","Venezuela":"委内瑞拉","Ecuador":"厄瓜多尔",
+  "Bolivia":"玻利维亚","Paraguay":"巴拉圭","Uruguay":"乌拉圭",
+  "Guyana":"圭亚那","Suriname":"苏里南","French Guiana":"法属圭亚那",
+  "Falkland Islands":"福克兰群岛",
+  // 非洲北部
+  "Egypt":"埃及","Libya":"利比亚","Tunisia":"突尼斯","Algeria":"阿尔及利亚",
+  "Morocco":"摩洛哥","Western Sahara":"西撒哈拉","Sudan":"苏丹","South Sudan":"南苏丹",
+  "Mauritania":"毛里塔尼亚",
+  // 非洲西部
+  "Mali":"马里","Niger":"尼日尔","Chad":"乍得","Senegal":"塞内加尔",
+  "Gambia":"冈比亚","The Gambia":"冈比亚","Guinea-Bissau":"几内亚比绍",
+  "Guinea":"几内亚","Sierra Leone":"塞拉利昂","Liberia":"利比里亚",
+  "Cote d'Ivoire":"科特迪瓦","Ivory Coast":"科特迪瓦",
+  "Ghana":"加纳","Togo":"多哥","Benin":"贝宁","Nigeria":"尼日利亚",
+  "Burkina Faso":"布基纳法索","Cape Verde":"佛得角",
+  // 非洲中部与东部
+  "Cameroon":"喀麦隆","Central African Republic":"中非共和国",
+  "Equatorial Guinea":"赤道几内亚","Gabon":"加蓬",
+  "Republic of the Congo":"刚果共和国","Congo":"刚果共和国",
+  "Democratic Republic of the Congo":"刚果民主共和国","Dem. Rep. Congo":"刚果民主共和国",
+  "Ethiopia":"埃塞俄比亚","Eritrea":"厄立特里亚","Djibouti":"吉布提","Somalia":"索马里",
+  "Somaliland":"索马里兰","Kenya":"肯尼亚","Uganda":"乌干达","Rwanda":"卢旺达",
+  "Burundi":"布隆迪","Tanzania":"坦桑尼亚",
+  // 非洲南部
+  "Angola":"安哥拉","Zambia":"赞比亚","Malawi":"马拉维","Mozambique":"莫桑比克",
+  "Zimbabwe":"津巴布韦","Botswana":"博茨瓦纳","Namibia":"纳米比亚",
+  "South Africa":"南非","Lesotho":"莱索托","Eswatini":"斯威士兰","Swaziland":"斯威士兰",
+  "Madagascar":"马达加斯加","Mauritius":"毛里求斯","Comoros":"科摩罗",
+  "Seychelles":"塞舌尔","Sao Tome and Principe":"圣多美和普林西比",
+  // 大洋洲
+  "Australia":"澳大利亚","New Zealand":"新西兰","Papua New Guinea":"巴布亚新几内亚",
+  "Fiji":"斐济","Solomon Islands":"所罗门群岛","Vanuatu":"瓦努阿图",
+  "New Caledonia":"新喀里多尼亚","Samoa":"萨摩亚","Tonga":"汤加",
+  "Kiribati":"基里巴斯","Tuvalu":"图瓦卢","Nauru":"瑙鲁","Palau":"帕劳",
+  "Marshall Islands":"马绍尔群岛","Micronesia":"密克罗尼西亚",
+  "Federated States of Micronesia":"密克罗尼西亚联邦",
+  // 特殊领地
+  "Antarctica":"南极洲"
 };
 
-/* ── Chinese name → ISO (from DB) ── */
+/* ── Chinese name → ISO (from DB, covers all 214 entries) ── */
 const CN_ISO = {
+  // 欧洲
   "法国":"FRA","意大利":"ITA","西班牙":"ESP","德国":"DEU","英国":"GBR",
   "葡萄牙":"PRT","荷兰":"NLD","比利时":"BEL","瑞士":"CHE","奥地利":"AUT",
   "希腊":"GRC","瑞典":"SWE","挪威":"NOR","丹麦":"DNK","芬兰":"FIN",
@@ -366,9 +653,58 @@ const CN_ISO = {
   "科索沃":"XKX","摩尔多瓦":"MDA","卢森堡":"LUX","列支敦士登":"LIE",
   "摩纳哥":"MCO","安道尔":"AND","圣马力诺":"SMR","梵蒂冈":"VAT",
   "马耳他":"MLT","塞浦路斯":"CYP","俄罗斯":"RUS","土耳其":"TUR",
-  "中国":"CHN","日本":"JPN","美国":"USA","印度":"IND","巴西":"BRA",
-  "加拿大":"CAN","澳大利亚":"AUS","埃及":"EGY","南非":"ZAF","墨西哥":"MEX",
-  "韩国":"KOR","泰国":"THA","印尼":"IDN","阿根廷":"ARG","荷兰":"NLD"
+  // 亚洲
+  "中国":"CHN","日本":"JPN","韩国":"KOR","印度":"IND","泰国":"THA",
+  "越南":"VNM","印度尼西亚":"IDN","马来西亚":"MYS","新加坡":"SGP",
+  "菲律宾":"PHL","阿联酋":"ARE","沙特阿拉伯":"SAU","以色列":"ISR",
+  "哈萨克斯坦":"KAZ","格鲁吉亚":"GEO","亚美尼亚":"ARM","阿塞拜疆":"AZE",
+  "尼泊尔":"NPL","斯里兰卡":"LKA","蒙古":"MNG","缅甸":"MMR",
+  "柬埔寨":"KHM","老挝":"LAO",
+  // 亚洲扩展(第三轮新增)
+  "巴基斯坦":"PAK","阿富汗":"AFG","伊朗":"IRN","伊拉克":"IRQ","叙利亚":"SYR",
+  "黎巴嫩":"LBN","约旦":"JOR","巴勒斯坦":"PSE","卡塔尔":"QAT","巴林":"BHR",
+  "科威特":"KWT","阿曼":"OMN","也门":"YEM","不丹":"BTN","孟加拉国":"BGD",
+  "马尔代夫":"MDV","文莱":"BRN","东帝汶":"TLS","吉尔吉斯斯坦":"KGZ",
+  "塔吉克斯坦":"TJK","土库曼斯坦":"TKM","乌兹别克斯坦":"UZB","朝鲜":"PRK",
+  // 美洲(老)
+  "美国":"USA","加拿大":"CAN","墨西哥":"MEX","巴西":"BRA","阿根廷":"ARG",
+  "秘鲁":"PER","哥伦比亚":"COL","智利":"CHL","古巴":"CUB","委内瑞拉":"VEN",
+  "厄瓜多尔":"ECU","玻利维亚":"BOL","巴拉圭":"PRY","乌拉圭":"URY",
+  // 美洲扩展(中美洲 + 加勒比 + 南美)
+  "危地马拉":"GTM","伯利兹":"BLZ","萨尔瓦多":"SLV","洪都拉斯":"HND",
+  "尼加拉瓜":"NIC","哥斯达黎加":"CRI","巴拿马":"PAN","海地":"HTI",
+  "多米尼加":"DOM","牙买加":"JAM","巴哈马":"BHS","特立尼达和多巴哥":"TTO",
+  "圭亚那":"GUY","苏里南":"SUR","安提瓜和巴布达":"ATG","多米尼克":"DMA",
+  "格林纳达":"GRD","圣基茨和尼维斯":"KNA","圣卢西亚":"LCA",
+  "圣文森特和格林纳丁斯":"VCT","巴巴多斯":"BRB",
+  // 非洲(老)
+  "埃及":"EGY","摩洛哥":"MAR","南非":"ZAF","肯尼亚":"KEN","坦桑尼亚":"TZA",
+  "埃塞俄比亚":"ETH","加纳":"GHA","尼日利亚":"NGA","马达加斯加":"MDG",
+  "津巴布韦":"ZWE","卢旺达":"RWA",
+  // 非洲扩展 43 国
+  "阿尔及利亚":"DZA","突尼斯":"TUN","利比亚":"LBY","苏丹":"SDN","南苏丹":"SSD",
+  "厄立特里亚":"ERI","吉布提":"DJI","索马里":"SOM","乌干达":"UGA","布隆迪":"BDI",
+  "刚果民主共和国":"COD","刚果共和国":"COG","中非":"CAF","喀麦隆":"CMR",
+  "加蓬":"GAB","赤道几内亚":"GNQ","圣多美和普林西比":"STP","安哥拉":"AGO",
+  "赞比亚":"ZMB","马拉维":"MWI","莫桑比克":"MOZ","博茨瓦纳":"BWA",
+  "纳米比亚":"NAM","莱索托":"LSO","斯威士兰":"SWZ","科摩罗":"COM",
+  "毛里求斯":"MUS","塞舌尔":"SYC","佛得角":"CPV","几内亚比绍":"GNB",
+  "几内亚":"GIN","塞拉利昂":"SLE","利比里亚":"LBR","科特迪瓦":"CIV",
+  "多哥":"TGO","贝宁":"BEN","布基纳法索":"BFA","马里":"MLI","尼日尔":"NER",
+  "乍得":"TCD","毛里塔尼亚":"MRT","塞内加尔":"SEN","冈比亚":"GMB",
+  // 大洋洲(老)
+  "澳大利亚":"AUS","新西兰":"NZL","巴布亚新几内亚":"PNG","斐济":"FJI",
+  // 大洋洲扩展
+  "所罗门群岛":"SLB","瓦努阿图":"VUT","萨摩亚":"WSM","汤加":"TON",
+  "基里巴斯":"KIR","密克罗尼西亚联邦":"FSM","马绍尔群岛":"MHL","帕劳":"PLW",
+  "瑙鲁":"NRU","图瓦卢":"TUV",
+  // 极地（无标准 ISO，用占位避免被过滤掉；地图上不显示但列表里能选）
+  "南极洲":"ATA","北极地区":"ARC",
+  // 海外属地/非主权区 (第六轮新增)
+  "格陵兰":"GRL","法罗群岛":"FRO","法属波利尼西亚":"PYF","新喀里多尼亚":"NCL",
+  "关岛":"GUM","库克群岛":"COK","直布罗陀":"GIB","波多黎各":"PRI",
+  "库拉索":"CUW","阿鲁巴":"ABW","马提尼克":"MTQ","百慕大":"BMU",
+  "留尼汪":"REU","马约特":"MYT","法属圭亚那":"GUF","福克兰群岛":"FLK"
 };
 
 /* ── Parse DB ── */
@@ -381,6 +717,14 @@ rawDB.forEach(c => {
   const iso = CN_ISO[c.name];
   if (iso) DB[iso] = c;
 });
+
+/* ── 一个中国原则：台湾、香港、澳门均为中国不可分割的领土
+   在地图上将这些区域与中国合并显示（共享中国的数据库条目，点击都打开中国详情）── */
+if (DB["CHN"]) {
+  DB["TWN"] = DB["CHN"];  // 台湾省
+  DB["HKG"] = DB["CHN"];  // 香港特别行政区
+  DB["MAC"] = DB["CHN"];  // 澳门特别行政区
+}
 
 /* ── STATE ── */
 const S = { svg:null, g:null, zoom:null, path:null, feats:[], active:null };
@@ -475,6 +819,133 @@ function buildMap() {
       return a > 0.04 ? null : "none";
     });
 
+  /* ── 微型国家与岛国/海外属地专属标记层 ──
+     50m 分辨率地图不包含微型国家/小岛国/海外属地的几何，
+     用经纬度直接绘制金色光环标记，使它们也可被点击查看详情。 */
+  const MICRO_STATES = [
+    // 欧洲微型国家
+    { iso:"VAT", name:"梵蒂冈",     lng: 12.4534, lat: 41.9029 },
+    { iso:"SMR", name:"圣马力诺",   lng: 12.4578, lat: 43.9424 },
+    { iso:"MCO", name:"摩纳哥",     lng:  7.4128, lat: 43.7384 },
+    { iso:"LIE", name:"列支敦士登", lng:  9.5554, lat: 47.1660 },
+    { iso:"AND", name:"安道尔",     lng:  1.5218, lat: 42.5063 },
+    { iso:"XKX", name:"科索沃",     lng: 20.9020, lat: 42.6026 },
+    { iso:"MLT", name:"马耳他",     lng: 14.3754, lat: 35.9375 },
+    { iso:"LUX", name:"卢森堡",     lng:  6.1296, lat: 49.8153 },
+    { iso:"GIB", name:"直布罗陀",   lng: -5.3536, lat: 36.1408 },
+    { iso:"FRO", name:"法罗群岛",   lng: -6.7707, lat: 62.0080 },
+    // 亚洲 / 中东 小国
+    { iso:"SGP", name:"新加坡",     lng:103.8198, lat:  1.3521 },
+    { iso:"CYP", name:"塞浦路斯",   lng: 33.4299, lat: 35.1264 },
+    { iso:"BHR", name:"巴林",       lng: 50.5577, lat: 26.0667 },
+    { iso:"MDV", name:"马尔代夫",   lng: 73.5093, lat:  3.2028 },
+    { iso:"BRN", name:"文莱",       lng:114.7277, lat:  4.5353 },
+    // 加勒比小国与海外属地
+    { iso:"ATG", name:"安提瓜和巴布达",     lng:-61.8456, lat: 17.0608 },
+    { iso:"DMA", name:"多米尼克",           lng:-61.3710, lat: 15.4150 },
+    { iso:"GRD", name:"格林纳达",           lng:-61.6790, lat: 12.1165 },
+    { iso:"KNA", name:"圣基茨和尼维斯",     lng:-62.7826, lat: 17.3578 },
+    { iso:"LCA", name:"圣卢西亚",           lng:-60.9789, lat: 13.9094 },
+    { iso:"VCT", name:"圣文森特和格林纳丁斯", lng:-61.2872, lat: 12.9843 },
+    { iso:"BRB", name:"巴巴多斯",           lng:-59.5432, lat: 13.1939 },
+    { iso:"TTO", name:"特立尼达和多巴哥",   lng:-61.2225, lat: 10.6918 },
+    { iso:"BHS", name:"巴哈马",             lng:-77.3963, lat: 25.0343 },
+    { iso:"PRI", name:"波多黎各",           lng:-66.5901, lat: 18.2208 },
+    { iso:"CUW", name:"库拉索",             lng:-68.9316, lat: 12.1091 },
+    { iso:"ABW", name:"阿鲁巴",             lng:-70.0286, lat: 12.5211 },
+    { iso:"MTQ", name:"马提尼克",           lng:-61.0594, lat: 14.6037 },
+    { iso:"BMU", name:"百慕大",             lng:-64.7505, lat: 32.3078 },
+    // 大洋洲岛国与海外属地
+    { iso:"FJI", name:"斐济",       lng:178.0650, lat:-17.7134 },
+    { iso:"SLB", name:"所罗门群岛", lng:160.1562, lat: -9.6457 },
+    { iso:"VUT", name:"瓦努阿图",   lng:166.9592, lat:-15.3767 },
+    { iso:"WSM", name:"萨摩亚",     lng:-172.1046, lat:-13.7590 },
+    { iso:"TON", name:"汤加",       lng:-175.1982, lat:-21.1789 },
+    { iso:"KIR", name:"基里巴斯",   lng:-168.7340, lat:  1.8709 },
+    { iso:"FSM", name:"密克罗尼西亚联邦", lng:158.2150, lat:  6.8874 },
+    { iso:"MHL", name:"马绍尔群岛", lng:171.1845, lat:  7.1315 },
+    { iso:"PLW", name:"帕劳",       lng:134.5825, lat:  7.5150 },
+    { iso:"NRU", name:"瑙鲁",       lng:166.9209, lat: -0.5228 },
+    { iso:"TUV", name:"图瓦卢",     lng:179.1942, lat: -8.5199 },
+    { iso:"PYF", name:"法属波利尼西亚", lng:-149.5585, lat:-17.5516 },
+    { iso:"NCL", name:"新喀里多尼亚", lng:166.4581, lat:-22.2758 },
+    { iso:"GUM", name:"关岛",       lng:144.7504, lat: 13.4745 },
+    { iso:"COK", name:"库克群岛",   lng:-159.7714, lat:-21.2070 },
+    // 印度洋小岛国与海外属地
+    { iso:"COM", name:"科摩罗",     lng: 43.2473, lat:-11.7172 },
+    { iso:"MUS", name:"毛里求斯",   lng: 57.5012, lat:-20.1609 },
+    { iso:"SYC", name:"塞舌尔",     lng: 55.4513, lat: -4.6191 },
+    { iso:"REU", name:"留尼汪",     lng: 55.4481, lat:-20.8789 },
+    { iso:"MYT", name:"马约特",     lng: 45.2278, lat:-12.7806 },
+    // 非洲小岛国
+    { iso:"CPV", name:"佛得角",     lng:-23.5133, lat: 14.9333 },
+    { iso:"STP", name:"圣多美和普林西比", lng:  6.7307, lat:  0.3389 },
+    // 南大西洋
+    { iso:"FLK", name:"福克兰群岛", lng:-57.8519, lat:-51.6939 },
+    // 极地（数据库中作为特殊条目）
+    { iso:"GRL", name:"格陵兰",     lng:-51.7214, lat: 64.1836 },
+    { iso:"ATA", name:"南极洲",     lng:  0,      lat:-82 },
+    { iso:"ARC", name:"北极地区",   lng:  0,      lat: 80 }
+  ];
+  const microLayer = g.append("g").attr("class", "micro-layer");
+  microLayer.selectAll("g.micro").data(MICRO_STATES).enter()
+    .append("g")
+    .attr("class", "micro")
+    .attr("data-iso", d => d.iso)
+    .attr("transform", d => {
+      const p = proj([d.lng, d.lat]);
+      return p ? `translate(${p[0]},${p[1]})` : null;
+    })
+    .style("cursor", "pointer")
+    .each(function(d) {
+      const grp = d3.select(this);
+      const inDB = !!DB[d.iso];
+      // 外圈光环
+      grp.append("circle")
+        .attr("class", "micro-halo")
+        .attr("r", 9)
+        .attr("fill", "none")
+        .attr("stroke", inDB ? "rgba(232,201,110,.45)" : "rgba(255,255,255,.18)")
+        .attr("stroke-width", 1);
+      // 中心点
+      grp.append("circle")
+        .attr("class", "micro-dot")
+        .attr("r", 3.5)
+        .attr("fill", inDB ? "var(--gold2)" : "rgba(255,255,255,.5)")
+        .attr("stroke", "rgba(8,9,15,.92)")
+        .attr("stroke-width", 1);
+      // 名字标签
+      grp.append("text")
+        .attr("class", "micro-label" + (inDB ? " has-db" : ""))
+        .attr("x", 12).attr("y", 3)
+        .text(d.name);
+    })
+    .on("mouseenter", function(ev, d) {
+      d3.select(this).select(".micro-halo").attr("r", 12);
+      // 构造一个伪 feature 用于 tip 与 click
+      const fake = { __iso: d.iso, __cn: d.name, properties: { name: d.name } };
+      showTip(ev, fake);
+    })
+    .on("mousemove", moveTip)
+    .on("mouseleave", function() {
+      d3.select(this).select(".micro-halo").attr("r", 9);
+      hideTip();
+    })
+    .on("click", function(ev, d) {
+      ev.stopPropagation();
+      // 构造伪 feature 触发 onClick
+      const fake = {
+        __iso: d.iso, __cn: d.name,
+        properties: { name: d.name },
+        // 给 zoom 提供一个"边界"：以坐标为中心 ±3° 范围
+        _microBounds: [
+          proj([d.lng - 3, d.lat + 3]),
+          proj([d.lng + 3, d.lat - 3])
+        ]
+      };
+      onClick(fake);
+    });
+
   const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", ev => {
     g.attr("transform", ev.transform);
     const k = ev.transform.k;
@@ -493,6 +964,39 @@ function buildMap() {
         if (a > 0.012) return k > 2.5 ? null : "none";
         return "none";
       });
+    // 城市标记与标签：保持视觉大小不随缩放变化
+    const inv = 1 / k;
+    g.selectAll(".cities-layer .city-dot").each(function() {
+      const sel = d3.select(this);
+      if (this.tagName === "circle") {
+        // 半径动态调整
+        const baseR = sel.classed("cap-star") ? 5.5 : 3.5;
+        sel.attr("r", baseR * inv);
+      } else {
+        // 五角星 path 使用 scale 变换
+        sel.attr("transform", `translate(${sel.attr("cx")||0},${sel.attr("cy")||0}) scale(${inv})`);
+      }
+    });
+    g.selectAll(".cities-layer .city-label")
+      .attr("transform", function() {
+        const x = +d3.select(this).attr("x");
+        const y = +d3.select(this).attr("y");
+        return `translate(${x*(1-inv)},${y*(1-inv)}) scale(${inv})`;
+      });
+    // 微型国家标记：保持视觉大小不随缩放变化
+    g.selectAll(".micro-layer g.micro").each(function() {
+      const grp = d3.select(this);
+      // 把外圈/中心点/标签整体缩到 inv 倍
+      grp.select(".micro-halo").attr("r", 9 * inv);
+      grp.select(".micro-dot").attr("r", 3.5 * inv);
+      grp.select(".micro-label")
+         .attr("x", 12 * inv)
+         .attr("y", 3 * inv)
+         .style("font-size", (10 * inv) + "px");
+    });
+    // 自动隐藏返回按钮
+    const backBtn = document.getElementById("zoomBack");
+    if (k <= 1.05 && backBtn) backBtn.classList.remove("show");
   });
 
   svg.call(zoom).on("dblclick.zoom", null)
@@ -506,8 +1010,16 @@ function buildMap() {
     S.svg.transition().duration(280).call(S.zoom.scaleBy, 1.5);
   document.getElementById("zOut").onclick = () =>
     S.svg.transition().duration(280).call(S.zoom.scaleBy, .67);
-  document.getElementById("zRes").onclick = () =>
+  document.getElementById("zRes").onclick = () => {
     S.svg.transition().duration(380).call(S.zoom.transform, d3.zoomIdentity);
+    clearCities();
+    document.getElementById("zoomBack").classList.remove("show");
+  };
+  document.getElementById("zoomBack").onclick = (ev) => {
+    ev.stopPropagation();
+    zoomReset();
+    clearCities();
+  };
   document.getElementById("panelClose").onclick = closePanel;
 }
 
@@ -537,6 +1049,130 @@ function onClick(f) {
     S.g.selectAll(`.c-path[data-iso="${f.__iso}"]`).classed("active", true);
   S.active = f;
   openPanel(f);
+
+  // 如果国家在数据库中，缩放并加载城市
+  const db = f.__iso ? DB[f.__iso] : null;
+  if (db) {
+    zoomToCountry(f);
+    loadCities(db.id);
+  } else {
+    clearCities();
+  }
+}
+
+/* ── ZOOM TO COUNTRY ── */
+function zoomToCountry(f) {
+  if (!S.svg || !S.path) return;
+  const stage = document.getElementById("stage");
+  const W = stage.clientWidth, H = stage.clientHeight;
+  // 微型国家有预计算的 bounds（基于经纬度）
+  const bounds = f._microBounds || S.path.bounds(f);
+  const dx = bounds[1][0] - bounds[0][0];
+  const dy = bounds[1][1] - bounds[0][1];
+  if (!dx || !dy) return;
+  const x = (bounds[0][0] + bounds[1][0]) / 2;
+  const y = (bounds[0][1] + bounds[1][1]) / 2;
+  // 留出右侧 380px 面板空间
+  const usableW = W - 380;
+  const scale = Math.min(8, 0.85 / Math.max(dx / usableW, dy / H));
+  const tx = usableW / 2 - scale * x;
+  const ty = H / 2 - scale * y;
+  S.svg.transition().duration(800)
+    .call(S.zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+  document.getElementById("zoomBack").classList.add("show");
+}
+
+function zoomReset() {
+  if (!S.svg) return;
+  S.svg.transition().duration(600)
+    .call(S.zoom.transform, d3.zoomIdentity);
+  document.getElementById("zoomBack").classList.remove("show");
+}
+
+/* ── CITIES LAYER ── */
+function clearCities() {
+  if (S.g) S.g.selectAll(".cities-layer").remove();
+}
+
+async function loadCities(countryId) {
+  clearCities();
+  let cities = [];
+  try {
+    const r = await fetch(`/api/country/${countryId}/cities`);
+    if (!r.ok) return;
+    cities = await r.json();
+  } catch(e) { return; }
+  if (!cities.length) return;
+
+  // 创建 projection（与 buildMap 中一致）
+  const stage = document.getElementById("stage");
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const proj = d3.geoNaturalEarth1()
+    .scale(W / 6.3).translate([W / 2, H / 2]);
+
+  const layer = S.g.append("g").attr("class", "cities-layer")
+    .on("click", (ev) => ev.stopPropagation());
+  const k = d3.zoomTransform(S.svg.node()).k || 1;
+
+  cities.forEach(city => {
+    const p = proj([city.longitude, city.latitude]);
+    if (!p) return;
+    const isCap = !!city.is_capital;
+    const dotR = isCap ? 5.5 : 3.5;
+
+    if (isCap) {
+      // 首都：金色五角星
+      const starPath = makeStarPath(p[0], p[1], 7, 3);
+      layer.append("path")
+        .attr("class", "city-dot cap-star")
+        .attr("d", starPath)
+        .attr("transform", `scale(${1/k})`)
+        .attr("transform-origin", `${p[0]}px ${p[1]}px`)
+        .style("transform-origin", `${p[0]}px ${p[1]}px`)
+        .on("mouseenter", (ev) => showCityTip(ev, city))
+        .on("mousemove", moveTip)
+        .on("mouseleave", hideTip);
+    } else {
+      layer.append("circle")
+        .attr("class", "city-dot")
+        .attr("cx", p[0]).attr("cy", p[1])
+        .attr("r", dotR / k)
+        .on("mouseenter", (ev) => showCityTip(ev, city))
+        .on("mousemove", moveTip)
+        .on("mouseleave", hideTip);
+    }
+
+    layer.append("text")
+      .attr("class", "city-label" + (isCap ? " is-cap" : ""))
+      .attr("x", p[0]).attr("y", p[1] - (isCap ? 11 : 8) / k)
+      .attr("transform", `scale(${1/k})`)
+      .style("transform-origin", `${p[0]}px ${p[1]}px`)
+      .text(city.name);
+  });
+}
+
+function makeStarPath(cx, cy, rOut, rIn) {
+  let d = "";
+  for (let i = 0; i < 10; i++) {
+    const ang = -Math.PI / 2 + i * Math.PI / 5;
+    const r = i % 2 === 0 ? rOut : rIn;
+    const x = cx + r * Math.cos(ang);
+    const y = cy + r * Math.sin(ang);
+    d += (i === 0 ? "M" : "L") + x.toFixed(2) + "," + y.toFixed(2);
+  }
+  return d + "Z";
+}
+
+function showCityTip(ev, city) {
+  const t = document.getElementById("tooltip");
+  const cap = city.is_capital
+    ? '<span class="tip-badge">首都</span>' : "";
+  t.innerHTML = city.name + cap +
+    (city.description
+      ? `<div style="font-size:10.5px;color:rgba(224,216,200,.55);margin-top:3px;letter-spacing:.02em;max-width:260px;white-space:normal">${city.description}</div>`
+      : "");
+  t.classList.add("show");
+  moveTip(ev);
 }
 
 /* ── PANEL ── */
@@ -550,22 +1186,464 @@ function closePanel() {
   document.getElementById("panel").classList.remove("open");
   if (S.g) S.g.selectAll(".c-path.active").classed("active", false);
   S.active = null;
+  clearCities();
+  zoomReset();
+}
+
+/* ── HERO SVG 生成器 ── 
+   为每个国家生成精致的几何头部，完全本地渲染，无网络依赖 */
+
+/* 国家专属地标插画字典 — 用 SVG 路径绘制著名地标轮廓
+   key: 国名中文。返回的 SVG 片段会嵌入到 200×400 viewBox 的画布上 */
+const LANDMARK_SVG = {
+  '中国': (a1, a2) => `
+    <!-- 远山 -->
+    <path d="M0,200 L0,150 Q60,120 100,138 T200,128 T300,135 T400,142 L400,200 Z" fill="${a2}" opacity=".4"/>
+    <path d="M0,200 L0,165 Q80,148 150,156 T280,150 T400,158 L400,200 Z" fill="${a2}" opacity=".6"/>
+    <!-- 长城起伏 -->
+    <path d="M30,160 Q60,135 95,155 T160,145 T230,158 T310,140 T380,152" stroke="${a1}" stroke-width="2.2" fill="none" opacity=".85"/>
+    <!-- 烽火台方块 -->
+    <rect x="58" y="138" width="9" height="15" fill="${a1}" opacity=".9"/>
+    <rect x="153" y="128" width="9" height="15" fill="${a1}" opacity=".9"/>
+    <rect x="223" y="141" width="9" height="15" fill="${a1}" opacity=".9"/>
+    <rect x="303" y="123" width="9" height="15" fill="${a1}" opacity=".9"/>
+    <!-- 月 -->
+    <circle cx="310" cy="55" r="22" fill="${a1}" opacity=".5"/>
+    <circle cx="310" cy="55" r="22" fill="none" stroke="${a1}" stroke-width="1" opacity=".9"/>
+  `,
+  '日本': (a1, a2) => `
+    <!-- 富士山雪顶 -->
+    <path d="M0,200 L0,180 L130,180 L200,55 L270,180 L400,180 L400,200 Z" fill="${a2}" opacity=".5"/>
+    <path d="M170,85 L200,55 L230,85 L215,90 L200,82 L185,90 Z" fill="${a1}" opacity=".8"/>
+    <!-- 太阳 -->
+    <circle cx="305" cy="60" r="28" fill="${a1}" opacity=".7"/>
+    <!-- 樱花花瓣 -->
+    <circle cx="70" cy="110" r="3" fill="${a1}" opacity=".7"/>
+    <circle cx="95" cy="135" r="2" fill="${a1}" opacity=".6"/>
+    <circle cx="115" cy="105" r="2.5" fill="${a1}" opacity=".7"/>
+    <circle cx="340" cy="140" r="3" fill="${a1}" opacity=".7"/>
+    <circle cx="365" cy="115" r="2" fill="${a1}" opacity=".6"/>
+  `,
+  '埃及': (a1, a2) => `
+    <!-- 沙漠地平线 -->
+    <rect x="0" y="155" width="400" height="45" fill="${a2}" opacity=".35"/>
+    <!-- 大金字塔 -->
+    <path d="M120,155 L195,55 L270,155 Z" fill="${a2}" opacity=".75"/>
+    <path d="M195,55 L270,155 L235,155 Z" fill="${a1}" opacity=".25"/>
+    <!-- 小金字塔 -->
+    <path d="M275,155 L320,90 L365,155 Z" fill="${a2}" opacity=".65"/>
+    <path d="M320,90 L365,155 L342,155 Z" fill="${a1}" opacity=".2"/>
+    <!-- 第二小金字塔 -->
+    <path d="M30,155 L65,108 L100,155 Z" fill="${a2}" opacity=".55"/>
+    <!-- 太阳 -->
+    <circle cx="200" cy="50" r="24" fill="${a1}" opacity=".75"/>
+  `,
+  '法国': (a1, a2) => `
+    <!-- 巴黎城市轮廓 -->
+    <rect x="0" y="160" width="400" height="40" fill="${a2}" opacity=".35"/>
+    <!-- 埃菲尔铁塔 -->
+    <path d="M195,60 L185,160 L215,160 L205,60 Z" fill="${a1}" opacity=".55"/>
+    <path d="M180,160 L220,160 L218,155 L182,155 Z" fill="${a1}" opacity=".75"/>
+    <path d="M183,130 L217,130 L215,125 L185,125 Z" fill="${a1}" opacity=".6"/>
+    <path d="M188,95 L212,95 L211,90 L189,90 Z" fill="${a1}" opacity=".5"/>
+    <circle cx="200" cy="55" r="3" fill="${a1}"/>
+    <!-- 远处建筑 -->
+    <rect x="60" y="140" width="40" height="20" fill="${a2}" opacity=".5"/>
+    <rect x="290" y="135" width="60" height="25" fill="${a2}" opacity=".5"/>
+    <circle cx="320" cy="125" r="12" fill="${a2}" opacity=".4"/>
+  `,
+  '意大利': (a1, a2) => `
+    <!-- 罗马斗兽场轮廓 -->
+    <ellipse cx="200" cy="160" rx="120" ry="20" fill="${a2}" opacity=".3"/>
+    <path d="M80,160 L80,90 Q200,55 320,90 L320,160 Z" fill="${a2}" opacity=".5"/>
+    <!-- 拱形 -->
+    ${[0,1,2,3,4,5,6,7].map(i => {
+      const cx = 95 + i * 30;
+      return `<path d="M${cx},155 L${cx},115 Q${cx+10},105 ${cx+20},115 L${cx+20},155 Z" fill="${a1}" opacity=".4"/>`;
+    }).join("")}
+    <!-- 太阳 -->
+    <circle cx="320" cy="55" r="24" fill="${a1}" opacity=".7"/>
+  `,
+  '美国': (a1, a2) => `
+    <!-- 自由女神 + 城市天际线 -->
+    <rect x="0" y="160" width="400" height="40" fill="${a2}" opacity=".4"/>
+    <!-- 摩天楼群 -->
+    ${[40,80,115,155,200,250,290,330,365].map((x, i) => {
+      const h = 50 + (i*37) % 80;
+      return `<rect x="${x}" y="${160-h}" width="20" height="${h}" fill="${a2}" opacity=".7"/>`;
+    }).join("")}
+    <!-- 顶部尖塔 -->
+    <path d="M210,80 L220,40 L230,80 Z" fill="${a1}" opacity=".8"/>
+    <!-- 星 -->
+    <text x="320" y="55" font-size="22" fill="${a1}" opacity=".7">★</text>
+    <text x="60" y="50" font-size="18" fill="${a1}" opacity=".5">★</text>
+  `,
+  '印度': (a1, a2) => `
+    <!-- 泰姬陵 -->
+    <rect x="0" y="160" width="400" height="40" fill="${a2}" opacity=".4"/>
+    <!-- 主圆顶 -->
+    <path d="M155,135 Q200,75 245,135 Z" fill="${a1}" opacity=".7"/>
+    <circle cx="200" cy="68" r="4" fill="${a1}"/>
+    <!-- 主体 -->
+    <rect x="150" y="135" width="100" height="25" fill="${a1}" opacity=".6"/>
+    <!-- 尖塔 -->
+    <rect x="105" y="100" width="8" height="60" fill="${a1}" opacity=".55"/>
+    <rect x="287" y="100" width="8" height="60" fill="${a1}" opacity=".55"/>
+    <path d="M105,100 L109,90 L113,100 Z" fill="${a1}" opacity=".75"/>
+    <path d="M287,100 L291,90 L295,100 Z" fill="${a1}" opacity=".75"/>
+    <!-- 月 -->
+    <circle cx="80" cy="55" r="18" fill="${a1}" opacity=".55"/>
+  `,
+  '巴西': (a1, a2) => `
+    <!-- 里约山 + 救世基督像 -->
+    <path d="M0,200 L0,170 L80,140 L180,165 L260,135 L400,160 L400,200 Z" fill="${a2}" opacity=".55"/>
+    <!-- 山顶尖 -->
+    <path d="M240,135 L260,75 L280,135 Z" fill="${a2}" opacity=".7"/>
+    <!-- 基督像 -->
+    <rect x="258" y="58" width="4" height="22" fill="${a1}" opacity=".9"/>
+    <rect x="250" y="64" width="20" height="4" fill="${a1}" opacity=".9"/>
+    <!-- 月光 -->
+    <circle cx="90" cy="55" r="20" fill="${a1}" opacity=".55"/>
+  `,
+  '俄罗斯': (a1, a2) => `
+    <!-- 雪与森林 -->
+    <rect x="0" y="160" width="400" height="40" fill="${a2}" opacity=".4"/>
+    <!-- 红场圣瓦西里圆顶 -->
+    <rect x="170" y="120" width="60" height="40" fill="${a2}" opacity=".55"/>
+    <!-- 中心圆顶 -->
+    <path d="M180,120 Q200,80 220,120 Z" fill="${a1}" opacity=".7"/>
+    <circle cx="200" cy="78" r="3" fill="${a1}"/>
+    <!-- 两侧圆顶 -->
+    <path d="M150,140 Q165,110 180,140 Z" fill="${a1}" opacity=".6"/>
+    <path d="M220,140 Q235,110 250,140 Z" fill="${a1}" opacity=".6"/>
+    <!-- 雪花 -->
+    <text x="60" y="55" font-size="14" fill="${a1}" opacity=".6">❄</text>
+    <text x="320" y="65" font-size="14" fill="${a1}" opacity=".6">❄</text>
+    <text x="350" y="100" font-size="11" fill="${a1}" opacity=".5">❄</text>
+  `,
+  '英国': (a1, a2) => `
+    <!-- 大本钟 + 伦敦天际线 -->
+    <rect x="0" y="160" width="400" height="40" fill="${a2}" opacity=".4"/>
+    <!-- 大本钟塔 -->
+    <rect x="190" y="65" width="20" height="95" fill="${a2}" opacity=".7"/>
+    <path d="M188,65 L200,45 L212,65 Z" fill="${a1}" opacity=".8"/>
+    <circle cx="200" cy="85" r="6" fill="${a1}" opacity=".9"/>
+    <!-- 议会建筑 -->
+    <rect x="100" y="130" width="170" height="30" fill="${a2}" opacity=".5"/>
+    <!-- 远处建筑 -->
+    <rect x="290" y="130" width="80" height="30" fill="${a2}" opacity=".45"/>
+    <!-- 月 -->
+    <circle cx="320" cy="60" r="20" fill="${a1}" opacity=".5"/>
+  `,
+  '澳大利亚': (a1, a2) => `
+    <!-- 悉尼歌剧院 + 海湾 -->
+    <rect x="0" y="170" width="400" height="30" fill="${a2}" opacity=".4"/>
+    <!-- 歌剧院贝壳 -->
+    <path d="M120,170 Q150,90 200,170 Z" fill="${a1}" opacity=".7"/>
+    <path d="M170,170 Q200,95 245,170 Z" fill="${a1}" opacity=".75"/>
+    <path d="M215,170 Q245,110 285,170 Z" fill="${a1}" opacity=".6"/>
+    <!-- 太阳 -->
+    <circle cx="80" cy="55" r="26" fill="${a1}" opacity=".7"/>
+  `,
+  '德国': (a1, a2) => `
+    <!-- 勃兰登堡门 -->
+    <rect x="0" y="160" width="400" height="40" fill="${a2}" opacity=".4"/>
+    <rect x="100" y="80" width="200" height="80" fill="${a2}" opacity=".55"/>
+    <!-- 柱子 -->
+    ${[110,150,190,230,270].map(x =>
+      `<rect x="${x}" y="100" width="10" height="60" fill="${a1}" opacity=".7"/>`
+    ).join("")}
+    <!-- 雕像 -->
+    <rect x="195" y="68" width="10" height="12" fill="${a1}" opacity=".8"/>
+    <circle cx="200" cy="65" r="3" fill="${a1}"/>
+    <!-- 月 -->
+    <circle cx="60" cy="50" r="18" fill="${a1}" opacity=".5"/>
+  `,
+  '希腊': (a1, a2) => `
+    <!-- 帕特农神庙 -->
+    <rect x="0" y="170" width="400" height="30" fill="${a2}" opacity=".4"/>
+    <!-- 阶梯 -->
+    <rect x="90" y="155" width="220" height="15" fill="${a2}" opacity=".6"/>
+    <!-- 柱子 -->
+    ${[105,135,165,195,225,255,285].map(x =>
+      `<rect x="${x}" y="85" width="11" height="70" fill="${a1}" opacity=".7"/>`
+    ).join("")}
+    <!-- 三角顶 -->
+    <path d="M85,85 L200,40 L315,85 L300,85 L200,50 L100,85 Z" fill="${a1}" opacity=".75"/>
+    <!-- 太阳 -->
+    <circle cx="340" cy="55" r="22" fill="${a1}" opacity=".7"/>
+  `,
+  '泰国': (a1, a2) => `
+    <!-- 大皇宫塔 -->
+    <rect x="0" y="170" width="400" height="30" fill="${a2}" opacity=".4"/>
+    <!-- 中心塔 -->
+    <path d="M180,170 L200,45 L220,170 Z" fill="${a1}" opacity=".75"/>
+    <!-- 塔层 -->
+    <path d="M186,140 L214,140 L210,150 L190,150 Z" fill="${a1}" opacity=".9"/>
+    <path d="M191,110 L209,110 L207,118 L193,118 Z" fill="${a1}" opacity=".9"/>
+    <!-- 两侧小塔 -->
+    <path d="M120,170 L135,90 L150,170 Z" fill="${a2}" opacity=".65"/>
+    <path d="M250,170 L265,90 L280,170 Z" fill="${a2}" opacity=".65"/>
+    <!-- 月 -->
+    <circle cx="80" cy="55" r="20" fill="${a1}" opacity=".55"/>
+  `,
+  '希腊': (a1, a2) => `
+    <!-- 帕特农 -->
+    <rect x="0" y="170" width="400" height="30" fill="${a2}" opacity=".4"/>
+    <rect x="90" y="155" width="220" height="15" fill="${a2}" opacity=".6"/>
+    ${[105,135,165,195,225,255,285].map(x =>
+      `<rect x="${x}" y="85" width="11" height="70" fill="${a1}" opacity=".7"/>`
+    ).join("")}
+    <path d="M85,85 L200,40 L315,85 Z" fill="${a1}" opacity=".75"/>
+    <circle cx="340" cy="55" r="22" fill="${a1}" opacity=".7"/>
+  `,
+  '加拿大': (a1, a2) => `
+    <!-- 雪山+枫叶 -->
+    <path d="M0,200 L0,140 L80,80 L130,120 L200,60 L270,110 L350,75 L400,130 L400,200 Z" fill="${a2}" opacity=".5"/>
+    <path d="M80,80 L100,90 L80,100 L100,110 Z" fill="${a1}" opacity=".7"/>
+    <path d="M200,60 L220,75 L200,90 L220,105 Z" fill="${a1}" opacity=".7"/>
+    <path d="M350,75 L370,90 L350,105 Z" fill="${a1}" opacity=".7"/>
+    <!-- 枫叶 -->
+    <text x="310" y="50" font-size="26" fill="${a1}" opacity=".8">🍁</text>
+  `,
+  '阿根廷': (a1, a2) => `
+    <!-- 探戈 + 远山 -->
+    <path d="M0,200 L0,150 Q100,130 200,140 T400,150 L400,200 Z" fill="${a2}" opacity=".55"/>
+    <path d="M0,200 L0,170 Q150,155 250,168 T400,170 L400,200 Z" fill="${a2}" opacity=".75"/>
+    <!-- 太阳 + 光芒 -->
+    <circle cx="200" cy="65" r="28" fill="${a1}" opacity=".8"/>
+    ${[0,1,2,3,4,5,6,7].map(i => {
+      const a = i * Math.PI / 4;
+      const x1 = 200 + Math.cos(a) * 35;
+      const y1 = 65 + Math.sin(a) * 35;
+      const x2 = 200 + Math.cos(a) * 50;
+      const y2 = 65 + Math.sin(a) * 50;
+      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${a1}" stroke-width="2" opacity=".7"/>`;
+    }).join("")}
+  `,
+  '韩国': (a1, a2) => `
+    <!-- 景福宫屋顶 + 城市 -->
+    <rect x="0" y="170" width="400" height="30" fill="${a2}" opacity=".4"/>
+    <!-- 翘檐屋顶 -->
+    <path d="M100,150 Q150,115 200,118 Q250,115 300,150 L295,150 Q250,123 200,126 Q150,123 105,150 Z" fill="${a1}" opacity=".75"/>
+    <path d="M100,150 L300,150 L290,170 L110,170 Z" fill="${a2}" opacity=".6"/>
+    <!-- 柱 -->
+    ${[140,170,200,230,260].map(x =>
+      `<rect x="${x}" y="150" width="6" height="20" fill="${a1}" opacity=".7"/>`
+    ).join("")}
+    <!-- 远山 -->
+    <path d="M0,170 L60,140 L100,170 Z" fill="${a2}" opacity=".5"/>
+    <path d="M310,170 L340,135 L390,170 Z" fill="${a2}" opacity=".5"/>
+  `,
+  '土耳其': (a1, a2) => `
+    <!-- 圣索菲亚 / 蓝色清真寺 -->
+    <rect x="0" y="170" width="400" height="30" fill="${a2}" opacity=".4"/>
+    <!-- 主圆顶 -->
+    <path d="M140,150 Q200,75 260,150 Z" fill="${a1}" opacity=".75"/>
+    <rect x="140" y="150" width="120" height="20" fill="${a1}" opacity=".55"/>
+    <!-- 尖塔 -->
+    <rect x="110" y="80" width="6" height="90" fill="${a1}" opacity=".7"/>
+    <path d="M110,80 L113,65 L116,80 Z" fill="${a1}" opacity=".85"/>
+    <rect x="284" y="80" width="6" height="90" fill="${a1}" opacity=".7"/>
+    <path d="M284,80 L287,65 L290,80 Z" fill="${a1}" opacity=".85"/>
+    <!-- 月+星 -->
+    <circle cx="60" cy="55" r="18" fill="${a1}" opacity=".6"/>
+    <circle cx="68" cy="55" r="14" fill="#0a0d18"/>
+    <text x="100" y="60" font-size="14" fill="${a1}" opacity=".8">★</text>
+  `,
+};
+
+function makeHeroSVG(name, capital, accent1, accent2, seed) {
+  // 优先尝试国家专属地标插画
+  if (LANDMARK_SVG[name]) {
+    const landmark = LANDMARK_SVG[name](accent1, accent2);
+    const safeCap = (capital || "").replace(/[<>&"']/g, "");
+    return `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+      <defs>
+        <linearGradient id="bg-${seed}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0a0d18"/>
+          <stop offset="50%" stop-color="#15192a"/>
+          <stop offset="100%" stop-color="#0d0f1a"/>
+        </linearGradient>
+        <radialGradient id="vig-${seed}" cx="50%" cy="50%" r="70%">
+          <stop offset="60%" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="100%" stop-color="rgba(8,9,15,.7)"/>
+        </radialGradient>
+      </defs>
+      <rect width="400" height="200" fill="url(#bg-${seed})"/>
+      ${landmark}
+      <rect width="400" height="200" fill="url(#vig-${seed})"/>
+    </svg>`;
+  }
+
+  // 基于种子生成确定性的伪随机数
+  const rng = (n) => {
+    let s = (seed * 9301 + 49297 + n * 233280) % 233280;
+    return s / 233280;
+  };
+
+  // 选取一个东方意象图案模式（基于 seed）
+  const mode = seed % 5;
+  let pattern = "";
+
+  if (mode === 0) {
+    // 模式 0：远山叠嶂
+    const layers = [];
+    for (let i = 0; i < 4; i++) {
+      const y = 100 + i * 28;
+      const pts = [`M0,200 L0,${y}`];
+      for (let x = 0; x <= 400; x += 30) {
+        const h = 25 + rng(i * 10 + x) * 35 - i * 4;
+        pts.push(`L${x},${y - h}`);
+      }
+      pts.push("L400,200 Z");
+      const op = 0.18 + i * 0.12;
+      layers.push(`<path d="${pts.join(" ")}" fill="${accent2}" opacity="${op}"/>`);
+    }
+    pattern = layers.join("");
+  } else if (mode === 1) {
+    // 模式 1：星空圆月
+    const moonX = 80 + rng(1) * 240;
+    const moonR = 32 + rng(2) * 18;
+    const stars = [];
+    for (let i = 0; i < 35; i++) {
+      const sx = rng(i*3) * 400;
+      const sy = rng(i*3+1) * 120;
+      const sr = 0.6 + rng(i*3+2) * 1.4;
+      stars.push(`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${sr.toFixed(2)}" fill="${accent1}" opacity="${(0.3 + rng(i*3+5) * 0.5).toFixed(2)}"/>`);
+    }
+    pattern = stars.join("") +
+      `<circle cx="${moonX}" cy="60" r="${moonR}" fill="${accent1}" opacity=".55"/>` +
+      `<circle cx="${moonX}" cy="60" r="${moonR}" fill="none" stroke="${accent1}" stroke-width="1" opacity=".8"/>`;
+  } else if (mode === 2) {
+    // 模式 2：日出海平面
+    const sunX = 200, sunY = 130, sunR = 38;
+    const rays = [];
+    for (let i = 0; i < 12; i++) {
+      const ang = (i / 12) * Math.PI - Math.PI;
+      const x1 = sunX + Math.cos(ang) * (sunR + 5);
+      const y1 = sunY + Math.sin(ang) * (sunR + 5);
+      const x2 = sunX + Math.cos(ang) * (sunR + 25);
+      const y2 = sunY + Math.sin(ang) * (sunR + 25);
+      rays.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${accent1}" stroke-width="1.5" opacity=".5"/>`);
+    }
+    const waves = [];
+    for (let i = 0; i < 5; i++) {
+      const y = 145 + i * 12;
+      waves.push(`<path d="M0,${y} Q100,${y-3} 200,${y} T400,${y}" fill="none" stroke="${accent1}" stroke-width="1" opacity="${0.5 - i * 0.08}"/>`);
+    }
+    pattern = rays.join("") +
+      `<circle cx="${sunX}" cy="${sunY}" r="${sunR}" fill="${accent1}" opacity=".7"/>` +
+      `<rect x="0" y="${sunY}" width="400" height="${200-sunY}" fill="${accent2}" opacity=".35"/>` +
+      waves.join("");
+  } else if (mode === 3) {
+    // 模式 3：抽象建筑剪影
+    const buildings = [];
+    let x = 0;
+    while (x < 400) {
+      const w = 25 + rng(x) * 35;
+      const h = 50 + rng(x + 0.5) * 110;
+      buildings.push(`<rect x="${x.toFixed(1)}" y="${(200 - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${accent2}" opacity=".5"/>`);
+      // 窗户点点
+      for (let wy = 200 - h + 10; wy < 195; wy += 12) {
+        for (let wx = x + 5; wx < x + w - 5; wx += 9) {
+          if (rng(wx + wy) > 0.55) {
+            buildings.push(`<rect x="${wx.toFixed(1)}" y="${wy.toFixed(1)}" width="3" height="4" fill="${accent1}" opacity=".7"/>`);
+          }
+        }
+      }
+      x += w + 2;
+    }
+    pattern = buildings.join("");
+  } else {
+    // 模式 4：放射几何图腾
+    const elems = [];
+    const cx = 200, cy = 100;
+    for (let i = 0; i < 8; i++) {
+      const r = 18 + i * 11;
+      elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${accent1}" stroke-width=".8" opacity="${(0.6 - i * 0.06).toFixed(2)}"/>`);
+    }
+    for (let i = 0; i < 16; i++) {
+      const ang = (i / 16) * Math.PI * 2;
+      const x2 = cx + Math.cos(ang) * 95;
+      const y2 = cy + Math.sin(ang) * 95;
+      elems.push(`<line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${accent1}" stroke-width=".5" opacity=".25"/>`);
+    }
+    elems.push(`<circle cx="${cx}" cy="${cy}" r="6" fill="${accent1}"/>`);
+    pattern = elems.join("");
+  }
+
+  // 取国家名首字符作为大字水印
+  const firstChar = name.charAt(0);
+  const safeCap = (capital || "").replace(/[<>&"']/g, "");
+
+  return `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+    <defs>
+      <linearGradient id="bg-${seed}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0a0d18"/>
+        <stop offset="50%" stop-color="#15192a"/>
+        <stop offset="100%" stop-color="#0d0f1a"/>
+      </linearGradient>
+      <radialGradient id="vig-${seed}" cx="50%" cy="50%" r="70%">
+        <stop offset="60%" stop-color="rgba(0,0,0,0)"/>
+        <stop offset="100%" stop-color="rgba(8,9,15,.7)"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="200" fill="url(#bg-${seed})"/>
+    ${pattern}
+    <text x="200" y="125" font-family="'Cormorant Garamond', serif"
+          font-size="120" font-weight="700" text-anchor="middle"
+          fill="${accent1}" opacity=".08">${firstChar}</text>
+    <rect width="400" height="200" fill="url(#vig-${seed})"/>
+  </svg>`;
 }
 
 function buildWithDB(d) {
-  const hero = d.image_url
-    ? `<div class="p-hero">
-        <img src="${d.image_url}" alt="${d.name}" loading="lazy">
-        <div class="p-hero-grad"></div>
-        <div class="p-hero-text">
-          <div class="p-name">${d.name}</div>
-          <div class="p-id">数据库编号 · ${String(d.id).padStart(3,"0")}</div>
-        </div>
-      </div>`
-    : `<div class="p-head">
-        <div class="p-name">${d.name}</div>
-        <div class="p-id">数据库编号 · ${String(d.id).padStart(3,"0")}</div>
-      </div>`;
+  // 为每个国家生成一个独特的金色配色（基于 id 哈希）
+  const seed = d.id || 0;
+  const hueShift = (seed * 37) % 60 - 30;  // -30 to +30
+  const accent1 = `hsl(${42 + hueShift}, 65%, 56%)`;  // 金黄系
+  const accent2 = `hsl(${30 + hueShift}, 50%, 32%)`;  // 深棕系
+
+  // 图片处理：区分两种 image_url
+  //   (1) CDN 图片直链 (images.unsplash.com / images.pexels.com / cdn.pixabay.com / 图片扩展名)
+  //       → 直接 <img> 渲染, 失败兜底 SVG
+  //   (2) Pixabay 页面链接 (pixabay.com/photos/ 等)
+  //       → 显示 SVG 占位 + 右下角"在 Pixabay 查看"跳转按钮 (兜底, 现已用 Pexels 替代)
+  const svgHero = makeHeroSVG(d.name, d.capital, accent1, accent2, seed);
+  const safeId = String(d.id).padStart(3, "0");
+  const url = (d.image_url || '').trim();
+  const hasUrl = url.length > 0;
+  // 判断是否是可直接嵌入的图片直链
+  const isDirectImage = hasUrl && (
+    url.includes('wsrv.nl') ||             // Cloudflare 图片代理（国内可访问）
+    url.includes('images.unsplash.com') ||
+    url.includes('images.pexels.com') ||
+    url.includes('cdn.pixabay.com') ||
+    /\.(jpg|jpeg|png|webp|gif|avif)(\?|$)/i.test(url)
+  );
+  // 判断是否是 Pixabay 页面链接(需要跳转)
+  const isPixabayPage = hasUrl && !isDirectImage &&
+    (url.includes('pixabay.com/photos/') || url.includes('pixabay.com/zh/photos/'));
+
+  const imgTag = isDirectImage
+    ? `<img src="${url}" alt="${d.name}" loading="lazy"
+            onerror="this.style.display='none';this.parentNode.querySelector('.p-hero-svg').style.opacity='1';">`
+    : '';
+  const linkBtn = isPixabayPage
+    ? `<a class="p-hero-link" href="${url}" target="_blank" rel="noopener noreferrer">在 Pixabay 查看原图</a>`
+    : '';
+  const svgOpacity = isDirectImage ? '0' : '1';
+  const hero = `<div class="p-hero">
+    ${imgTag}
+    <div class="p-hero-svg" style="opacity:${svgOpacity}">${svgHero}</div>
+    <div class="p-hero-grad"></div>
+    <div class="p-hero-text">
+      <div class="p-name">${d.name}</div>
+      <div class="p-id">数据库编号 · ${safeId}</div>
+    </div>
+    ${linkBtn}
+  </div>`;
 
   const cells = [
     ["首都", d.capital],
@@ -579,6 +1657,39 @@ function buildWithDB(d) {
       <div class="info-val">${v}</div>
     </div>`).join("");
 
+  // 详情字段构建器
+  const detailBlock = (icon, ttl, txt) => txt
+    ? `<div class="p-detail-blk">
+         <div class="p-detail-row">
+           <span class="p-detail-icon">${icon}</span>
+           <span class="p-detail-ttl">${ttl}</span>
+         </div>
+         <div class="p-detail-txt">${txt}</div>
+       </div>`
+    : "";
+
+  // 国情速览（小字段网格）
+  const metaCells = [
+    ["人口", d.population],
+    ["面积", d.area],
+    ["时区", d.timezone],
+    ["主要宗教", d.religion],
+  ].filter(([_,v]) => v && v.trim()).map(([l,v]) => `
+    <div class="p-meta-cell">
+      <div class="info-lbl">${l}</div>
+      <div class="info-val">${v}</div>
+    </div>`).join("");
+
+  const metaBlock = metaCells
+    ? `<div class="p-detail-blk">
+         <div class="p-detail-row">
+           <span class="p-detail-icon">i</span>
+           <span class="p-detail-ttl">国情速览</span>
+         </div>
+         <div class="p-meta-row">${metaCells}</div>
+       </div>`
+    : "";
+
   return `${hero}
   <div class="p-body">
     <div class="p-section">
@@ -589,22 +1700,48 @@ function buildWithDB(d) {
       <div class="p-section-ttl">旅行简介</div>
       <div class="p-desc">${d.description}</div>
     </div>
+    ${detailBlock("✦", "气候与四季", d.climate)}
+    ${detailBlock("❀", "节日庆典", d.festivals)}
+    ${detailBlock("◇", "著名景点", d.attractions)}
+    ${detailBlock("⌘", "历史脉络", d.history)}
+    ${detailBlock("☕", "特色美食", d.cuisine)}
+    ${detailBlock("✺", "文化风俗", d.culture)}
+    ${detailBlock("◉", "政治与对外关系", d.politics)}
+    ${metaBlock}
   </div>`;
 }
 
 function buildEmpty(name) {
-  return `<div class="p-head">
-    <div class="p-name">${name || "未知"}</div>
-    <div class="p-id" style="color:rgba(255,255,255,.18)">暂未收录</div>
+  // 给未收录国家也生成一个 SVG hero 以保持视觉一致
+  const displayName = name || "未知";
+  // 用名称哈希作种子保持稳定
+  let seed = 0;
+  for (let i = 0; i < displayName.length; i++) seed = (seed * 31 + displayName.charCodeAt(i)) & 0xffff;
+  const hueShift = (seed * 37) % 60 - 30;
+  const accent1 = `hsl(${42 + hueShift}, 35%, 45%)`;  // 暗淡金色（未收录国家）
+  const accent2 = `hsl(${30 + hueShift}, 25%, 25%)`;
+  const svgHero = makeHeroSVG(displayName, "", accent1, accent2, seed);
+
+  return `<div class="p-hero">
+    <div class="p-hero-svg" style="opacity:.55">${svgHero}</div>
+    <div class="p-hero-grad"></div>
+    <div class="p-hero-text">
+      <div class="p-name" style="color:rgba(255,255,255,.85)">${displayName}</div>
+      <div class="p-id" style="color:rgba(255,255,255,.3)">暂 未 收 录</div>
+    </div>
   </div>
   <div class="p-body">
     <div class="p-empty">
       <div class="p-empty-icon">◈</div>
       <div class="p-empty-txt">
-        <b style="color:rgba(224,216,200,.65)">${name || "该国家"}</b>
-        尚未录入数据库。<br><br>
-        请在 <code>countries</code> 表中<br>
-        插入记录后即可显示详情。
+        <b style="color:rgba(224,216,200,.7);font-size:14px;letter-spacing:.05em">${displayName}</b><br><br>
+        本图鉴目前收录 <b style="color:var(--gold)">${rawDB.length}</b> 个国家与地区的<br>
+        详尽风物志（含气候、节庆、景点、<br>历史、美食、文化、城市等），<br>
+        此国家暂未在收录范围内。<br><br>
+        <span style="color:rgba(255,255,255,.25);font-size:11px;letter-spacing:.12em">
+        请点击地图上的<span style="color:var(--gold)">金色国家</span>探索<br>
+        或使用底部"+ − ⌖"按钮缩放浏览
+        </span>
       </div>
     </div>
   </div>`;
